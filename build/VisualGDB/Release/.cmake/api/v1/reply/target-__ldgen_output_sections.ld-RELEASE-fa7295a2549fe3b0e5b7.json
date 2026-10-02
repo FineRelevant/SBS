@@ -1,0 +1,124 @@
+{
+	"backtrace" : 4,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_custom_target",
+			"__ldgen_create_target",
+			"idf_build_executable",
+			"project"
+		],
+		"files" : 
+		[
+			"E:/esp/v6.1/esp-idf/tools/cmake/ldgen.cmake",
+			"E:/esp/v6.1/esp-idf/tools/cmake/build.cmake",
+			"E:/esp/v6.1/esp-idf/tools/cmake/project.cmake",
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 3
+			},
+			{
+				"command" : 3,
+				"file" : 3,
+				"line" : 9,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 2,
+				"line" : 1099,
+				"parent" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 862,
+				"parent" : 2
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 236,
+				"parent" : 3
+			}
+		]
+	},
+	"dependencies" : 
+	[
+		{
+			"id" : "__idf_riscv::@5eeb1a2ca709d020776e"
+		},
+		{
+			"id" : "__idf_esp_driver_rmt::@0efb206e593213c2b54a"
+		},
+		{
+			"id" : "__idf_esp_driver_spi::@a108b58494cdd93e678c"
+		},
+		{
+			"id" : "__idf_esp_psram::@222fc793c25100a4848d"
+		},
+		{
+			"id" : "__idf_main::@7368607ed66887415643"
+		},
+		{
+			"id" : "__idf_espressif__led_strip::@d894ad21b59de47c274a"
+		},
+		{
+			"id" : "__idf_espressif__cjson::@e349802f2ba01203fe3e"
+		},
+		{
+			"id" : "__idf_esp_hal_rmt::@de1b8987904643f454ff"
+		}
+	],
+	"id" : "__ldgen_output_sections.ld::@6890427a1f51a3e7e1df",
+	"name" : "__ldgen_output_sections.ld",
+	"paths" : 
+	{
+		"build" : ".",
+		"source" : "."
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		},
+		{
+			"name" : "CMake Rules",
+			"sourceIndexes" : 
+			[
+				1,
+				2
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 4,
+			"isGenerated" : true,
+			"path" : "build/VisualGDB/Release/CMakeFiles/__ldgen_output_sections.ld",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 0,
+			"isGenerated" : true,
+			"path" : "build/VisualGDB/Release/CMakeFiles/__ldgen_output_sections.ld.rule",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 0,
+			"isGenerated" : true,
+			"path" : "build/VisualGDB/Release/esp-idf/esp_system/ld/sections.ld.rule",
+			"sourceGroupIndex" : 1
+		}
+	],
+	"type" : "UTILITY"
+}

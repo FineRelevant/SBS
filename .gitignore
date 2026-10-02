@@ -1,0 +1,10 @@
+.vs/
+bin/
+obj/
+build/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.visualgdb/CodeDB/
+.visualgdb/VisualGDBCache/

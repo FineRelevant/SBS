@@ -1,0 +1,77 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"install"
+		],
+		"files" : 
+		[
+			"E:/esp/v6.1/esp-idf/components/mbedtls/mbedtls/include/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 7,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 13,
+				"parent" : 0
+			}
+		]
+	},
+	"installers" : 
+	[
+		{
+			"backtrace" : 1,
+			"component" : "Unspecified",
+			"destination" : "include/mbedtls",
+			"paths" : 
+			[
+				"E:/esp/v6.1/esp-idf/components/mbedtls/mbedtls/include/mbedtls/build_info.h",
+				"E:/esp/v6.1/esp-idf/components/mbedtls/mbedtls/include/mbedtls/debug.h",
+				"E:/esp/v6.1/esp-idf/components/mbedtls/mbedtls/include/mbedtls/error.h",
+				"E:/esp/v6.1/esp-idf/components/mbedtls/mbedtls/include/mbedtls/mbedtls_config.h",
+				"E:/esp/v6.1/esp-idf/components/mbedtls/mbedtls/include/mbedtls/net_sockets.h",
+				"E:/esp/v6.1/esp-idf/components/mbedtls/mbedtls/include/mbedtls/oid.h",
+				"E:/esp/v6.1/esp-idf/components/mbedtls/mbedtls/include/mbedtls/pkcs7.h",
+				"E:/esp/v6.1/esp-idf/components/mbedtls/mbedtls/include/mbedtls/ssl.h",
+				"E:/esp/v6.1/esp-idf/components/mbedtls/mbedtls/include/mbedtls/ssl_cache.h",
+				"E:/esp/v6.1/esp-idf/components/mbedtls/mbedtls/include/mbedtls/ssl_ciphersuites.h",
+				"E:/esp/v6.1/esp-idf/components/mbedtls/mbedtls/include/mbedtls/ssl_cookie.h",
+				"E:/esp/v6.1/esp-idf/components/mbedtls/mbedtls/include/mbedtls/ssl_ticket.h",
+				"E:/esp/v6.1/esp-idf/components/mbedtls/mbedtls/include/mbedtls/timing.h",
+				"E:/esp/v6.1/esp-idf/components/mbedtls/mbedtls/include/mbedtls/version.h",
+				"E:/esp/v6.1/esp-idf/components/mbedtls/mbedtls/include/mbedtls/x509.h",
+				"E:/esp/v6.1/esp-idf/components/mbedtls/mbedtls/include/mbedtls/x509_crl.h",
+				"E:/esp/v6.1/esp-idf/components/mbedtls/mbedtls/include/mbedtls/x509_crt.h",
+				"E:/esp/v6.1/esp-idf/components/mbedtls/mbedtls/include/mbedtls/x509_csr.h"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "include/mbedtls/private",
+			"paths" : 
+			[
+				"E:/esp/v6.1/esp-idf/components/mbedtls/mbedtls/include/mbedtls/private/config_adjust_ssl.h",
+				"E:/esp/v6.1/esp-idf/components/mbedtls/mbedtls/include/mbedtls/private/config_adjust_x509.h"
+			],
+			"type" : "file"
+		}
+	],
+	"paths" : 
+	{
+		"build" : "esp-idf/mbedtls/mbedtls/include",
+		"source" : "E:/esp/v6.1/esp-idf/components/mbedtls/mbedtls/include"
+	}
+}

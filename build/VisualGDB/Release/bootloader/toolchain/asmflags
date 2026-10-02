@@ -1,0 +1,2 @@
+"-specs=E:/Projects/!Embedded/ESP32/SBS/Alpha-0.1/Alpha-0.1/build/VisualGDB/Release/bootloader/specs/picolibc.specs"
+-march=rv32imac_zicsr_zifencei_zaamo_zalrsc
