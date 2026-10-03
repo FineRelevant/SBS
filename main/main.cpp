@@ -27,4 +27,6 @@ extern "C" void app_main(void)
 	static Application application;
 	application.start();
 	// that's it, the loop is managed by application
+	
+	//test
 }
