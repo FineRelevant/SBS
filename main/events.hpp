@@ -20,9 +20,9 @@ namespace event
 	};
 	
 	// EVENT DATA TYPES BEGIN
-	struct BellDue
+	struct BellEvent
 	{
-		uint8_t duration_s;
+		uint32_t duration_ms;
 	};
 	struct Test
 	{
@@ -37,7 +37,7 @@ namespace event
 	// EVENT DATA TYPES END
 	
 	using Data = std::variant<
-		BellDue,
+		BellEvent,
 		Test,
 		ScheduleChanged
 	>;
@@ -157,6 +157,16 @@ namespace event
 		bool subscribe(typename HandlerList<T>::Callback callback, void* context = nullptr)
 		{
 			return std::get<HandlerList<T>>(_handler_lists).add_handler(callback, context);
+		}
+		
+		bool publish(const Event& event)
+		{
+			return _queue.publish(event);
+		}
+		
+		bool publish_from_isr(const Event& event, BaseType_t* higher_task_priority_woken = nullptr)
+		{
+			return _queue.publish_from_isr(event, higher_task_priority_woken);
 		}
 		
 		void run();
