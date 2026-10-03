@@ -1,6 +1,6 @@
 /* Automatically generated file; DO NOT EDIT */
 /* Espressif IoT Development Framework Linker Script */
-/* Generated from: E:\Projects\!Embedded\ESP32\SBS\Alpha-0.1\Alpha-0.1\build\VisualGDB\Release\esp-idf\esp_system\ld\sections.ld.in */
+/* Generated from: E:\Projects\!Embedded\ESP32\SBS-Solution\SBS-Project\SBS\build\VisualGDB\Release\esp-idf\esp_system\ld\sections.ld.in */
 
 /*
  * SPDX-FileCopyrightText: 2022 Espressif Systems (Shanghai) CO LTD

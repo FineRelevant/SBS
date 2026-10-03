@@ -576,7 +576,7 @@ rule C_STATIC_LIBRARY_LINKER____idf_main_
 # Rule for re-running cmake.
 
 rule RERUN_CMAKE
-  command = "C:\Users\Anonymous user\AppData\Local\VisualGDB\CMake\bin\cmake.exe" --regenerate-during-build -SE:\esp\v6.1\esp-idf\components\bootloader\subproject -BE:\Projects\!Embedded\ESP32\SBS\Alpha-0.1\Alpha-0.1\build\VisualGDB\Release\bootloader
+  command = "C:\Users\Anonymous user\AppData\Local\VisualGDB\CMake\bin\cmake.exe" --regenerate-during-build -SE:\esp\v6.1\esp-idf\components\bootloader\subproject -BE:\Projects\!Embedded\ESP32\SBS-Solution\SBS-Project\SBS\build\VisualGDB\Release\bootloader
   description = Re-running CMake...
   generator = 1
 

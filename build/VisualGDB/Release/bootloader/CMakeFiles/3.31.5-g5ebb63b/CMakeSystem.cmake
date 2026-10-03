@@ -3,7 +3,7 @@ set(CMAKE_HOST_SYSTEM_NAME "Windows")
 set(CMAKE_HOST_SYSTEM_VERSION "10.0.19045")
 set(CMAKE_HOST_SYSTEM_PROCESSOR "AMD64")
 
-include("E:/Projects/!Embedded/ESP32/SBS/Alpha-0.1/Alpha-0.1/build/VisualGDB/Release/bootloader/toolchain/toolchain-esp32c6.cmake")
+include("E:/Projects/!Embedded/ESP32/SBS-Solution/SBS-Project/SBS/build/VisualGDB/Release/bootloader/toolchain/toolchain-esp32c6.cmake")
 
 set(CMAKE_SYSTEM "Generic")
 set(CMAKE_SYSTEM_NAME "Generic")

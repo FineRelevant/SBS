@@ -3,8 +3,8 @@ cmake_minimum_required(VERSION 3.16)
 
 if("${CONFIG}" STREQUAL "" OR "${CONFIG}" STREQUAL "RELEASE")
   file(REMOVE_RECURSE
-  "blink.bin"
-  "blink.map"
+  "SBS.bin"
+  "SBS.map"
   "bootloader\\bootloader.bin"
   "bootloader\\bootloader.elf"
   "bootloader\\bootloader.map"

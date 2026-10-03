@@ -10,18 +10,18 @@ if(NOT EXISTS "E:/esp/v6.1/esp-idf/components/bootloader/subproject")
   file(MAKE_DIRECTORY "E:/esp/v6.1/esp-idf/components/bootloader/subproject")
 endif()
 file(MAKE_DIRECTORY
-  "E:/Projects/!Embedded/ESP32/SBS/Alpha-0.1/Alpha-0.1/build/VisualGDB/Release/bootloader"
-  "E:/Projects/!Embedded/ESP32/SBS/Alpha-0.1/Alpha-0.1/build/VisualGDB/Release/bootloader-prefix"
-  "E:/Projects/!Embedded/ESP32/SBS/Alpha-0.1/Alpha-0.1/build/VisualGDB/Release/bootloader-prefix/tmp"
-  "E:/Projects/!Embedded/ESP32/SBS/Alpha-0.1/Alpha-0.1/build/VisualGDB/Release/bootloader-prefix/src/bootloader-stamp"
-  "E:/Projects/!Embedded/ESP32/SBS/Alpha-0.1/Alpha-0.1/build/VisualGDB/Release/bootloader-prefix/src"
-  "E:/Projects/!Embedded/ESP32/SBS/Alpha-0.1/Alpha-0.1/build/VisualGDB/Release/bootloader-prefix/src/bootloader-stamp"
+  "E:/Projects/!Embedded/ESP32/SBS-Solution/SBS-Project/SBS/build/VisualGDB/Release/bootloader"
+  "E:/Projects/!Embedded/ESP32/SBS-Solution/SBS-Project/SBS/build/VisualGDB/Release/bootloader-prefix"
+  "E:/Projects/!Embedded/ESP32/SBS-Solution/SBS-Project/SBS/build/VisualGDB/Release/bootloader-prefix/tmp"
+  "E:/Projects/!Embedded/ESP32/SBS-Solution/SBS-Project/SBS/build/VisualGDB/Release/bootloader-prefix/src/bootloader-stamp"
+  "E:/Projects/!Embedded/ESP32/SBS-Solution/SBS-Project/SBS/build/VisualGDB/Release/bootloader-prefix/src"
+  "E:/Projects/!Embedded/ESP32/SBS-Solution/SBS-Project/SBS/build/VisualGDB/Release/bootloader-prefix/src/bootloader-stamp"
 )
 
 set(configSubDirs )
 foreach(subDir IN LISTS configSubDirs)
-    file(MAKE_DIRECTORY "E:/Projects/!Embedded/ESP32/SBS/Alpha-0.1/Alpha-0.1/build/VisualGDB/Release/bootloader-prefix/src/bootloader-stamp/${subDir}")
+    file(MAKE_DIRECTORY "E:/Projects/!Embedded/ESP32/SBS-Solution/SBS-Project/SBS/build/VisualGDB/Release/bootloader-prefix/src/bootloader-stamp/${subDir}")
 endforeach()
 if(cfgdir)
-  file(MAKE_DIRECTORY "E:/Projects/!Embedded/ESP32/SBS/Alpha-0.1/Alpha-0.1/build/VisualGDB/Release/bootloader-prefix/src/bootloader-stamp${cfgdir}") # cfgdir has leading slash
+  file(MAKE_DIRECTORY "E:/Projects/!Embedded/ESP32/SBS-Solution/SBS-Project/SBS/build/VisualGDB/Release/bootloader-prefix/src/bootloader-stamp${cfgdir}") # cfgdir has leading slash
 endif()

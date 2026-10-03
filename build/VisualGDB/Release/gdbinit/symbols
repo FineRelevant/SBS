@@ -13,8 +13,8 @@ end
 
 # Load bootloader symbols
 set confirm off
-    add-symbol-file E:/Projects/!Embedded/ESP32/SBS/Alpha-0.1/Alpha-0.1/build/VisualGDB/Release/bootloader/bootloader.elf
+    add-symbol-file E:/Projects/!Embedded/ESP32/SBS-Solution/SBS-Project/SBS/build/VisualGDB/Release/bootloader/bootloader.elf
 set confirm on
 
 # Load application symbols
-file E:/Projects/!Embedded/ESP32/SBS/Alpha-0.1/Alpha-0.1/build/VisualGDB/Release/blink.elf
+file E:/Projects/!Embedded/ESP32/SBS-Solution/SBS-Project/SBS/build/VisualGDB/Release/SBS.elf
