@@ -4,10 +4,10 @@
 1366	1714	8122070913789124	esp-idf/esp_libc/CMakeFiles/__idf_esp_libc.dir/src/picolibc/bufio_setvbuf.c.obj	47ab78734189e481
 62	97	8122070901066982	project_elf_src_esp32c6.c	f703a60b6f47119c
 36	112	8122070901216583	E:/Projects/!Embedded/ESP32/SBS/Alpha-0.1/Alpha-0.1/build/VisualGDB/Release/esp-idf/esp_system/ld/memory.ld	53ca3f309ff6c138
-62	97	8122070901066982	E:/Projects/!Embedded/ESP32/SBS/Alpha-0.1/Alpha-0.1/build/VisualGDB/Release/project_elf_src_esp32c6.c	f703a60b6f47119c
-1395	1975	8122070914088676	esp-idf/freertos/CMakeFiles/__idf_freertos.dir/app_startup.c.obj	2ae840a02e5621f6
 3193	4793	8122070932066909	esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/sleep_modes.c.obj	f7163efccfb16660
 2656	3348	8122070926693861	esp-idf/esp_hw_support/CMakeFiles/__idf_esp_hw_support.dir/port/esp32c6/io_mux.c.obj	fd03f11361dfac4f
+62	97	8122070901066982	E:/Projects/!Embedded/ESP32/SBS/Alpha-0.1/Alpha-0.1/build/VisualGDB/Release/project_elf_src_esp32c6.c	f703a60b6f47119c
+1395	1975	8122070914088676	esp-idf/freertos/CMakeFiles/__idf_freertos.dir/app_startup.c.obj	2ae840a02e5621f6
 171	589	8122070901840391	esp-idf/esp_libc/CMakeFiles/__idf_esp_libc.dir/src/assert.c.obj	a5dc43c96bc9fee9
 7101	7629	8122070971145290	esp-idf/esp_hal_pmu/libesp_hal_pmu.a	75864a003cef5f73
 17584	17643	8122071075977277	esp-idf/mbedtls/mbedtls/tf-psa-crypto/drivers/everest/libeverest.a	f9a6688036ebf66a
