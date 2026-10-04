@@ -95,16 +95,6 @@ namespace scheduler
 		return result;
 	}
 	
-	uint32_t TimeService::ms_since_midnight()
-	{
-		const std::tm time = local_time();
-		
-		return
-			static_cast<uint32_t>(time.tm_hour) * ms_per_hour +
-			static_cast<uint32_t>(time.tm_min) * ms_per_minute +
-			static_cast<uint32_t>(time.tm_sec) * ms_per_second;
-	}
-	
 	SchedulerConfig SchedulerConfigParser::parse_from_json(const char* json)
 	{
 		if (json == nullptr)
@@ -248,5 +238,234 @@ namespace scheduler
 		}
 		
 		return nullptr;
+	}
+	
+	bool SchedulerTask::start()
+	{
+		if (_handle == nullptr)
+			return false;
+		
+		_handle = xTaskCreateStatic(
+		&SchedulerTask::task_entry,
+			"scheduler",
+			stack_words,
+			this,
+			_priority,
+			_stack.data(),
+			&_control_block);
+		
+		return _handle != nullptr;
+	}
+	
+	void SchedulerTask::stop()
+	{
+		if (_handle == nullptr)
+			return;
+		
+		vTaskDelete(_handle);
+		_handle = nullptr;
+	}
+	
+	void SchedulerTask::task_entry(void* argument)
+	{
+		auto* task = static_cast<SchedulerTask*>(argument);
+
+		task->run();
+
+		// run() is expected to never return.
+		vTaskDelete(nullptr);
+	}
+	
+	void SchedulerTask::schedule_event(std::time_t timestamp, event::Data event_data)
+	{
+		if (_scheduled_events_count >= max_scheduled_events)
+			return;
+
+		std::size_t position = _scheduled_events_count;
+
+		while (position > 0 &&
+		       _scheduled_events[position - 1].timestamp > timestamp)
+		{
+			_scheduled_events[position] =
+			    std::move(_scheduled_events[position - 1]);
+
+			--position;
+		}
+
+		_scheduled_events[position] = ScheduledEvent {
+			.timestamp = timestamp,
+			.event_data = std::move(event_data)
+		};
+
+		++_scheduled_events_count;
+	}
+	
+	const SchedulerTask::ScheduledEvent* SchedulerTask::next_event()
+	{
+		if (_scheduled_events_count == 0)
+			return nullptr;
+
+		return &_scheduled_events[0];
+	}
+	
+	void SchedulerTask::remove_next_event()
+	{
+		if (_scheduled_events_count == 0)
+			return;
+
+		for (std::size_t i = 1; i < _scheduled_events_count; ++i)
+			_scheduled_events[i - 1] =
+			    std::move(_scheduled_events[i]);
+
+		--_scheduled_events_count;
+	}
+	
+	void SchedulerTask::rebuild_schedule()
+	{
+		_scheduled_events_count = 0;
+
+		const std::tm local = _time_service.local_time();
+
+		const Schedule* schedule = _config.get_active_schedule();
+
+		if (schedule == nullptr)
+			return;
+
+		for (std::size_t i = 0; i < schedule->period_count; ++i)
+		{
+			const Period& period = schedule->periods[i];
+
+			std::tm start = local;
+			start.tm_hour = period.start.hour;
+			start.tm_min  = period.start.minute;
+			start.tm_sec  = 0;
+
+			const std::time_t start_time = std::mktime(&start);
+
+			if (start_time == static_cast<std::time_t>(-1))
+				continue;
+
+			schedule_event(
+			    start_time,
+				event::BellEvent {
+					.duration_ms = _config.duration_ms
+				});
+		}
+	}
+	
+	bool SchedulerTask::wait_until(std::time_t timestamp)
+	{
+		while (true)
+		{
+			const std::time_t now = _time_service.absolute_time();
+
+			if (now >= timestamp)
+				return true;
+
+			const std::time_t seconds = timestamp - now;
+
+			TickType_t ticks;
+
+			if (seconds >=
+			    static_cast<std::time_t>(portMAX_DELAY / configTICK_RATE_HZ))
+			{
+				ticks = portMAX_DELAY;
+			}
+			else
+			{
+				ticks = pdMS_TO_TICKS(
+				    static_cast<uint32_t>(seconds * 1000)
+				);
+
+				if (ticks == 0)
+					ticks = 1;
+			}
+
+			const uint32_t notification =
+			    ulTaskNotifyTake(pdTRUE, ticks);
+
+			if (notification != 0)
+			{
+				/*
+				 * Something explicitly woke us.
+				 *
+				 * Recalculate the schedule/time rather than assuming
+				 * the original deadline is still valid.
+				 */
+				return false;
+			}
+		}
+	}
+	
+	void SchedulerTask::notify()
+	{
+		if (_handle != nullptr)
+			xTaskNotifyGive(_handle);
+	}
+	
+	void SchedulerTask::run()
+	{
+		while (true)
+		{
+			if (!_time_service.is_synchronized())
+			{
+				/*
+				 * Don't construct a schedule using an untrusted clock.
+				 * Wait until something tells us synchronization has occurred.
+				 */
+				ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(1000));
+				continue;
+			}
+
+			const std::tm local = _time_service.local_time();
+
+			if (!_schedule_built ||
+			    local.tm_yday != _schedule_day)
+			{
+				rebuild_schedule();
+
+				_schedule_day = local.tm_yday;
+				_schedule_built = true;
+			}
+
+			const ScheduledEvent* event = next_event();
+
+			if (event == nullptr)
+			{
+				/*
+				 * Nothing remains for today.
+				 *
+				 * Wake periodically so that we notice the next day.
+				 * This can later be replaced with a proper next-day
+				 * deadline / power-management integration.
+				 */
+				ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(60 * 1000));
+				continue;
+			}
+
+			if (!wait_until(event->timestamp))
+				continue;
+
+			/*
+			 * Re-read the time after waking. The clock may have changed
+			 * while we were blocked.
+			 */
+			if (_time_service.absolute_time() < event->timestamp)
+				continue;
+
+			event::Event output {
+				event::Metadata {
+					.source = event::Source::Scheduler,
+					.sequence_id = 0, // replace with member counter
+					.timestamp = xTaskGetTickCount()
+				},
+				event->event_data
+			}
+			;
+
+			_event_dispatcher.publish(output);
+
+			remove_next_event();
+		}
 	}
 }

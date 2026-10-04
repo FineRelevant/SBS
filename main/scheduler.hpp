@@ -18,7 +18,7 @@ namespace scheduler
 	};
 	struct Period
 	{
-		uint8_t id;
+		uint32_t id;
 		
 		TimeOfDay start;
 		TimeOfDay end;
@@ -73,16 +73,54 @@ namespace scheduler
 		// TODO: implement sntp internals later, when internet service will be ready
 	};
 
-	class Scheduler
+	class SchedulerTask
 	{
-	public:
-		Scheduler(SchedulerConfig& config, TimeService& time_service, event::EventDispatcher& event_dispatcher)
-			: _config(config), _time_service(time_service), _event_dispatcher(event_dispatcher)
-		{}
-		void run();
 	private:
-		const SchedulerConfig& _config;
+		static constexpr std::size_t stack_words = 1024;
+		static constexpr std::size_t max_scheduled_events = 512;
+	public:
+		
+		SchedulerTask(SchedulerConfig& config, TimeService& time_service, event::EventDispatcher& event_dispatcher, UBaseType_t priority)
+			: _config(config), _time_service(time_service), _event_dispatcher(event_dispatcher), _priority(priority)
+		{}
+		SchedulerTask(const SchedulerTask&) = delete;
+		SchedulerTask& operator=(const SchedulerTask&) = delete;
+		~SchedulerTask()
+		{
+			stop();
+		}
+		
+		bool start();
+		void stop();
+	private:
+		struct ScheduledEvent
+		{
+			std::time_t timestamp;
+			event::Data event_data;
+		};
+		SchedulerConfig& _config;
 		TimeService& _time_service;
 		event::EventDispatcher& _event_dispatcher;
+		std::array<ScheduledEvent, max_scheduled_events> _scheduled_events;
+		std::size_t _scheduled_events_count = 0;
+		
+		bool _schedule_built = false;
+		uint32_t _schedule_day = -1;
+		
+		UBaseType_t _priority;
+		TaskHandle_t _handle = nullptr;
+		StaticTask_t _control_block {};
+		std::array<StackType_t, stack_words> _stack {};
+		
+		void run();
+		static void task_entry(void* argument);
+		bool wait_until(std::time_t timestamp);
+		void notify();
+		
+		// Maintains scheduled events order, removes expired events, i.e. those that can not be logically executed
+		void schedule_event(std::time_t timestamp, event::Data event_data);
+		const ScheduledEvent* next_event();
+		void remove_next_event();
+		void rebuild_schedule();
 	};
 }

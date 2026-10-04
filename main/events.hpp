@@ -30,8 +30,6 @@ namespace event
 	};
 	struct ScheduleChanged
 	{
-		// Placeholder for actual schedule object pointer
-		void* schedule_ptr;
 	};
 	
 	// EVENT DATA TYPES END
