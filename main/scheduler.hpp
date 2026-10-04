@@ -47,6 +47,8 @@ namespace scheduler
 		uint32_t schedule_count = 0;
 		
 		std::string active_schedule;
+		
+		const Schedule* get_active_schedule() const;
 	};
 	
 	class SchedulerConfigParser
@@ -67,6 +69,8 @@ namespace scheduler
 		std::tm local_time() const;
 		
 		uint32_t ms_since_midnight() const;
+	private:
+		// TODO: implement sntp internals later, when internet service will be ready
 	};
 
 	class Scheduler
