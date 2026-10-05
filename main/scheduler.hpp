@@ -67,8 +67,6 @@ namespace scheduler
 	
 		std::time_t absolute_time() const;
 		std::tm local_time() const;
-		
-		uint32_t ms_since_midnight() const;
 	private:
 		// TODO: implement sntp internals later, when internet service will be ready
 	};

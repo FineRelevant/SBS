@@ -403,6 +403,7 @@ namespace scheduler
 			xTaskNotifyGive(_handle);
 	}
 	
+	// Current implementation is a draft, should be revised after other services are properly implemented
 	void SchedulerTask::run()
 	{
 		while (true)
