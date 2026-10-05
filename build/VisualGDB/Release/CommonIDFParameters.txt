@@ -1,1 +1,0 @@
-E:\esp\v6.1\esp-idf

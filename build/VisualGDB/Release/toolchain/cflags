@@ -1,2 +1,0 @@
--march=rv32imac_zicsr_zifencei_zaamo_zalrsc
-"-specs=E:/Projects/!Embedded/ESP32/SBS-Solution/SBS-Project/SBS/build/VisualGDB/Release/specs/picolibc.specs"
