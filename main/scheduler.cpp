@@ -233,8 +233,8 @@ namespace scheduler
 	{
 		for (std::size_t i = 0; i < schedule_count; i++)
 		{
-			if (schedules.name == active_schedule)
-				return &schedules[i]i;
+			if (schedules[i].name == active_schedule)
+				return &schedules[i];
 		}
 		
 		return nullptr;
@@ -347,7 +347,7 @@ namespace scheduler
 
 			schedule_event(
 			    start_time,
-				event::BellEvent {
+				event::BellDue {
 					.duration_ms = _config.duration_ms
 				});
 		}

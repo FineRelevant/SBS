@@ -9,18 +9,19 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#include "esp_wifi.h"
 
 namespace event
 {	
 	enum class Source : uint8_t
 	{
-		Scheduler,
-		Test
-		// Etc.
+		Scheduler = 0,
+		Test,
+		Internet
 	};
 	
 	// EVENT DATA TYPES BEGIN
-	struct BellEvent
+	struct BellDue
 	{
 		uint32_t duration_ms;
 	};
@@ -32,23 +33,70 @@ namespace event
 	{
 	};
 	
-		// NETWORKING EVENTS BEGIN
-	struct WifiStart
-	{
-	};
+	// Networking events
 
-	struct WifiStop
+	using IPv4Address = uint32_t;
+
+	struct WifiClientStarted
 	{
 	};
-	
-	
+	struct WifiClientStopped
+	{
+	};
+	struct WifiClientConnected
+	{
+		std::array<uint8_t, 6> bssid;
+		int8_t rssi;
+		uint8_t channel;
+	};
+	struct WifiClientDisconnected
+	{
+		uint8_t reason;
+	};
+	struct WifiGotIp
+	{
+		IPv4Address address;
+		IPv4Address netmask;
+		IPv4Address gateway;
+	};
+	struct WifiLostIp
+	{
+	};
+	struct WifiApStarted
+	{
+		std::array<uint8_t, 6> mac;
+	};
+	struct WifiApStopped
+	{
+		std::array<uint8_t, 6> mac;
+	};
+	struct WifiApClientConnected
+	{
+		std::array<uint8_t, 6> mac;
+	};
+	struct WifiApClientDisconnected
+	{
+		std::array<uint8_t, 6> mac;
+	};
 
 	// EVENT DATA TYPES END
 
 	using Data = std::variant<
-		BellEvent,
+		BellDue,
 		Test,
-		ScheduleChanged>;
+		ScheduleChanged,
+		
+		WifiClientStarted,
+		WifiClientStopped,
+		WifiClientConnected,
+		WifiClientDisconnected,
+		WifiGotIp,
+		WifiLostIp,
+		WifiApStarted,
+		WifiApStopped,
+		WifiApClientConnected,
+		WifiApClientDisconnected
+		>;
 
 	struct Metadata
 	{
