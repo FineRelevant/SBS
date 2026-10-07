@@ -8,4 +8,6 @@ idf_component_register(
     	"scheduler.cpp"
     	"internet.cpp"
     	"webserver.cpp"
-    INCLUDE_DIRS ".")
+    INCLUDE_DIRS "."
+    REQUIRES esp_wifi
+)
