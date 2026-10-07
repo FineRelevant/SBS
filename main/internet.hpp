@@ -62,7 +62,9 @@ namespace internet
 		esp_event_handler_instance_t _ip_event_handler{nullptr};
 		
 		static void esp_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
-		
 		void handle_event(esp_event_base_t event_base, int32_t event_id, void* event_data);
+
+		void configure_wifi();
+		void configure_station();
 	};
 }

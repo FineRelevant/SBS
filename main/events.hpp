@@ -32,14 +32,24 @@ namespace event
 	{
 	};
 	
-	// EVENT DATA TYPES END
+		// NETWORKING EVENTS BEGIN
+	struct WifiStart
+	{
+	};
+
+	struct WifiStop
+	{
+	};
 	
+	
+
+	// EVENT DATA TYPES END
+
 	using Data = std::variant<
 		BellEvent,
 		Test,
-		ScheduleChanged
-	>;
-	
+		ScheduleChanged>;
+
 	struct Metadata
 	{
 		Source source;
