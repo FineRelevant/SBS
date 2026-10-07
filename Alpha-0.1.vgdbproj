@@ -133,7 +133,10 @@
               <VirtualSourceFolder>
                 <Name>Internet</Name>
                 <Subfolders />
-                <Files />
+                <Files>
+                  <string>internet.cpp</string>
+                  <string>webserver.cpp</string>
+                </Files>
                 <RelatedFilterName>Source Files</RelatedFilterName>
               </VirtualSourceFolder>
               <VirtualSourceFolder>
