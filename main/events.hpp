@@ -1,237 +1,326 @@
 #pragma once
 
-#include <cstdint>
-#include <variant>
 #include <array>
+#include <cstdint>
+#include <tuple>
 #include <type_traits>
 #include <utility>
-#include <tuple>
+#include <variant>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
-#include "esp_wifi.h"
 
 namespace event
-{	
-	enum class Source : uint8_t
+{
+	enum class Source
 	{
 		Scheduler = 0,
 		Test,
-		Internet
+		Network
 	};
-	
-	// EVENT DATA TYPES BEGIN
+
+	using IPv4Address = std::uint32_t;
+	using MacAddress = std::array<std::uint8_t, 6>;
+
+	// -------------------------------------------------------------------------
+	// Event data
+	// -------------------------------------------------------------------------
+
 	struct BellDue
 	{
-		uint32_t duration_ms;
+		std::uint32_t duration_ms;
 	};
+
 	struct Test
 	{
-		uint8_t test_value;
+		std::uint8_t test_value;
 	};
+
 	struct ScheduleChanged
 	{
 	};
-	
-	// Networking events
 
-	using IPv4Address = uint32_t;
+	// Wi-Fi station
 
-	struct WifiClientStarted
+	struct WifiStationStarted
 	{
 	};
-	struct WifiClientStopped
+
+	struct WifiStationStopped
 	{
 	};
-	struct WifiClientConnected
+
+	struct WifiStationConnected
 	{
-		std::array<uint8_t, 6> bssid;
-		int8_t rssi;
-		uint8_t channel;
+		MacAddress bssid;
+		std::int8_t rssi;
+		std::uint8_t channel;
 	};
-	struct WifiClientDisconnected
+
+	struct WifiStationDisconnected
 	{
-		uint8_t reason;
+		std::uint8_t reason;
 	};
-	struct WifiGotIp
+
+	struct WifiStationGotIp
 	{
 		IPv4Address address;
 		IPv4Address netmask;
 		IPv4Address gateway;
 	};
-	struct WifiLostIp
+
+	struct WifiStationLostIp
 	{
-	};
-	struct WifiApStarted
-	{
-		std::array<uint8_t, 6> mac;
-	};
-	struct WifiApStopped
-	{
-		std::array<uint8_t, 6> mac;
-	};
-	struct WifiApClientConnected
-	{
-		std::array<uint8_t, 6> mac;
-	};
-	struct WifiApClientDisconnected
-	{
-		std::array<uint8_t, 6> mac;
 	};
 
-	// EVENT DATA TYPES END
+	// Wi-Fi access point
+
+	struct WifiApStarted
+	{
+		MacAddress mac;
+	};
+
+	struct WifiApStopped
+	{
+		MacAddress mac;
+	};
+
+	struct WifiApClientConnected
+	{
+		MacAddress mac;
+	};
+
+	struct WifiApClientDisconnected
+	{
+		MacAddress mac;
+	};
+
+	struct WifiProvisioningStarted
+	{
+	};
+
+	struct WifiProvisioningStopped
+	{
+	};
+
+	struct WifiProvisioningCompleted
+	{
+	};
+
+	struct WifiProvisioningFailed
+	{
+		std::int32_t error;
+	};
+
+	// -------------------------------------------------------------------------
+	// Event infrastructure
+	// -------------------------------------------------------------------------
 
 	using Data = std::variant<
 		BellDue,
 		Test,
 		ScheduleChanged,
-		
-		WifiClientStarted,
-		WifiClientStopped,
-		WifiClientConnected,
-		WifiClientDisconnected,
-		WifiGotIp,
-		WifiLostIp,
+
+		WifiStationStarted,
+		WifiStationStopped,
+		WifiStationConnected,
+		WifiStationDisconnected,
+		WifiStationGotIp,
+		WifiStationLostIp,
+
 		WifiApStarted,
 		WifiApStopped,
 		WifiApClientConnected,
-		WifiApClientDisconnected
-		>;
+		WifiApClientDisconnected,
+
+		WifiProvisioningStarted,
+		WifiProvisioningStopped,
+		WifiProvisioningCompleted,
+		WifiProvisioningFailed>;
 
 	struct Metadata
 	{
-		Source source;
-		uint32_t sequence_id;
-		TickType_t timestamp;
+		Source source{};
+		std::uint32_t sequence_id{};
+		TickType_t timestamp{};
 	};
-	
+
 	struct Event
 	{
 		Metadata metadata;
 		Data data;
 	};
-	
-	template<typename T, typename Variant>
-		struct IsVariantAlternative;
 
-	template<typename T, typename... Ts>
-		struct IsVariantAlternative<T, std::variant<Ts...>> 
-		{
-			static constexpr bool value = (std::is_same_v<T, Ts> || ...);
-		};
+	template <typename T, typename Variant>
+	struct IsVariantAlternative;
 
-	template<typename T>
-		concept DataType =
-		    IsVariantAlternative<T, event::Data>::value;
-	
+	template <typename T, typename... Ts>
+	struct IsVariantAlternative<T, std::variant<Ts...>>
+	{
+		static constexpr bool value =
+			(std::is_same_v<T, Ts> || ...);
+	};
+
+	template <typename T>
+	concept DataType =
+		IsVariantAlternative<T, Data>::value;
+
 	class EventQueue
 	{
-	public:
+	  public:
 		static constexpr std::size_t queue_length = 32;
 
-	public:
 		EventQueue();
 
-		EventQueue(const EventQueue&) = delete;
-		EventQueue& operator=(const EventQueue&) = delete;
+		EventQueue(const EventQueue &) = delete;
+		EventQueue &operator=(const EventQueue &) = delete;
 
-		bool publish(const Event& event);
+		bool publish(const Event &event);
 
-		bool publish_from_isr(const Event& event, BaseType_t* higher_task_priority_woken = nullptr);
+		bool publish_from_isr(
+			const Event &event,
+			BaseType_t *higher_task_priority_woken = nullptr);
 
-		bool receive(Event& event, TickType_t timeout = portMAX_DELAY);
+		bool receive(
+			Event &event,
+			TickType_t timeout = portMAX_DELAY);
 
-	private:
-		QueueHandle_t _queue = nullptr;
+	  private:
+		QueueHandle_t _queue{nullptr};
 
-		StaticQueue_t _control_block {};
+		StaticQueue_t _control_block{};
 
 		alignas(Event)
-		std::array<Event, queue_length> _storage {};
+			std::array<Event, queue_length> _storage{};
 	};
-	
+
 	class EventDispatcher
 	{
-	public:
+	  public:
 		static constexpr std::size_t max_handlers_per_type = 8;
-			
-	private:
-		
-		template<DataType T>
+
+	  private:
+		template <DataType T>
 		class HandlerList
 		{
-		public:
-			using Callback = void(*)(const Event&, const T&, void* context);
-			
+		  public:
+			using Callback =
+				void (*)(const Event &, const T &, void *context);
+
 			struct Handler
 			{
-				Callback callback;
-				void* context;
+				Callback callback{};
+				void *context{};
 			};
-			
-			bool add_handler(Callback callback, void* context)
+
+			bool add_handler(
+				Callback callback,
+				void *context)
 			{
-				if (callback == nullptr || _count >= max_handlers_per_type)
+				if (callback == nullptr ||
+					_count >= max_handlers_per_type)
+				{
 					return false;
-				
-				_handlers[_count++] = {callback, context};
+				}
+
+				_handlers[_count++] = {
+					.callback = callback,
+					.context = context};
+
 				return true;
 			}
-			
-			void invoke_handlers(const Event& event, const T& data) const
+
+			void invoke(
+				const Event &event,
+				const T &data) const
 			{
 				for (std::size_t i = 0; i < _count; ++i)
 				{
-					const auto& handler = _handlers[i];
+					const auto &handler = _handlers[i];
 
-					handler.callback(event, data, handler.context);
+					handler.callback(
+						event,
+						data,
+						handler.context);
 				}
 			}
-		private:
-			std::array<Handler, max_handlers_per_type> _handlers {};
-			std::size_t _count = 0;
+
+		  private:
+			std::array<Handler, max_handlers_per_type> _handlers{};
+			std::size_t _count{0};
 		};
-		
-		template<typename Variant>
+
+		template <typename Variant>
 		struct HandlerLists;
-		
-		template<typename... Ts>
+
+		template <typename... Ts>
 		struct HandlerLists<std::variant<Ts...>>
 		{
 			using type = std::tuple<HandlerList<Ts>...>;
 		};
-		
+
 		using HandlerLists_t = HandlerLists<Data>::type;
-	public:
-		explicit EventDispatcher(EventQueue& queue)
+
+	  public:
+		explicit EventDispatcher(EventQueue &queue)
 			: _queue(queue)
-		{}
-		~EventDispatcher() = default;
-		
-		template<DataType T>
-		// A subscription is permanent
-		bool subscribe(typename HandlerList<T>::Callback callback, void* context = nullptr)
 		{
-			return std::get<HandlerList<T>>(_handler_lists).add_handler(callback, context);
 		}
-		
-		bool publish(const Event& event)
+
+		EventDispatcher(const EventDispatcher &) = delete;
+		EventDispatcher &operator=(const EventDispatcher &) = delete;
+
+		template <DataType T>
+		bool subscribe(
+			typename HandlerList<T>::Callback callback,
+			void *context = nullptr)
 		{
+			return std::get<HandlerList<T>>(
+					   _handler_lists)
+				.add_handler(callback, context);
+		}
+
+		template <DataType T>
+		bool publish(
+			Source source,
+			T data)
+		{
+			Event event{
+				.metadata = {
+					.source = source,
+					.sequence_id = _next_sequence_id++,
+					.timestamp = xTaskGetTickCount()},
+				.data = std::move(data)};
+
 			return _queue.publish(event);
 		}
-		
-		bool publish_from_isr(const Event& event, BaseType_t* higher_task_priority_woken = nullptr)
+
+		template <DataType T>
+		bool publish_from_isr(
+			Source source,
+			T data,
+			BaseType_t *higher_task_priority_woken = nullptr)
 		{
-			return _queue.publish_from_isr(event, higher_task_priority_woken);
+			Event event{
+				.metadata = {
+					.source = source,
+					.sequence_id = _next_sequence_id++,
+					.timestamp = xTaskGetTickCount()},
+				.data = std::move(data)};
+
+			return _queue.publish_from_isr(
+				event,
+				higher_task_priority_woken);
 		}
-		
+
 		void run();
-		
-	private:
-		void dispatch(const Event& event);
-		
-	private:
-		EventQueue& _queue;
-		HandlerLists_t _handler_lists {};
+
+	  private:
+		void dispatch(const Event &event);
+
+	  private:
+		EventQueue &_queue;
+		HandlerLists_t _handler_lists{};
+		std::uint32_t _next_sequence_id{0};
 	};
 }
