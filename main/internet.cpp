@@ -164,11 +164,16 @@ namespace internet
 		{
 			esp_netif_destroy(_station_netif);
 			_station_netif = nullptr;
-
 			return ESP_ERR_NO_MEM;
 		}
 
-		auto result = configure_station();
+		// Both interfaces are configured below.
+		auto result = esp_wifi_set_mode(WIFI_MODE_APSTA);
+
+		if (result != ESP_OK)
+			goto cleanup;
+
+		result = configure_station();
 
 		if (result != ESP_OK)
 			goto cleanup;

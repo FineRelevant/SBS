@@ -410,18 +410,13 @@ namespace scheduler
 		{
 			if (!_time_service.is_synchronized())
 			{
-				/*
-				 * Don't construct a schedule using an untrusted clock.
-				 * Wait until something tells us synchronization has occurred.
-				 */
 				ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(1000));
 				continue;
 			}
 
 			const std::tm local = _time_service.local_time();
 
-			if (!_schedule_built ||
-			    local.tm_yday != _schedule_day)
+			if (!_schedule_built || local.tm_yday != _schedule_day)
 			{
 				rebuild_schedule();
 
@@ -429,42 +424,38 @@ namespace scheduler
 				_schedule_built = true;
 			}
 
-			const ScheduledEvent* event = next_event();
+			const ScheduledEvent *scheduled = next_event();
 
-			if (event == nullptr)
+			if (scheduled == nullptr)
 			{
-				/*
-				 * Nothing remains for today.
-				 *
-				 * Wake periodically so that we notice the next day.
-				 * This can later be replaced with a proper next-day
-				 * deadline / power-management integration.
-				 */
-				ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(60 * 1000));
+				ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(60'000));
 				continue;
 			}
 
-			if (!wait_until(event->timestamp))
+			if (!wait_until(scheduled->timestamp))
 				continue;
 
-			/*
-			 * Re-read the time after waking. The clock may have changed
-			 * while we were blocked.
-			 */
-			if (_time_service.absolute_time() < event->timestamp)
+
+			if (_time_service.absolute_time() < scheduled->timestamp)
 				continue;
 
-			event::Event output {
-				event::Metadata {
-					.source = event::Source::Scheduler,
-					.sequence_id = 0, // replace with member counter
-					.timestamp = xTaskGetTickCount()
+			const bool published = std::visit(
+				[this](const auto &data) -> bool {
+					return _event_dispatcher.publish(
+						event::Source::Scheduler,
+						data);
 				},
-				event->event_data
-			}
-			;
+				scheduled->event_data);
 
-			_event_dispatcher.publish(output);
+			if (!published)
+			{
+				ESP_LOGE(
+					"Scheduler",
+					"Failed to publish scheduled event; retrying");
+
+				vTaskDelay(pdMS_TO_TICKS(100));
+				continue;
+			}
 
 			remove_next_event();
 		}

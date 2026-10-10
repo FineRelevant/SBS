@@ -74,7 +74,7 @@ namespace event
 
 				auto& handlers = std::get<HandlerList<DataType>>(_handler_lists);
 
-				handlers.invoke_handlers(event, data);
+				handlers.invoke(event, data);
 			}, event.data);
 	}
 

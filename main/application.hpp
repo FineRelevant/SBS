@@ -5,6 +5,7 @@
 #include "internet.hpp"
 
 #include "esp_wifi.h"
+#include "nvs_flash.h"
 
 class Application
 {
@@ -13,7 +14,8 @@ public:
 	
 	Application(const Application&) = delete;
 	Application& operator=(const Application&) = delete;
-	
+
+	void initialize();
 	void start();
 private:
 	// Event System
@@ -22,8 +24,9 @@ private:
 	StaticTask<event::EventDispatcher> _event_dispatcher_task;
 	
 	// WiFi
-	
-	
+	internet::InternetConfig _internet_config;
+	internet::WifiService _wifi_service;
+
 	[[nodiscard]]
 	esp_err_t initialize_networking()
 	{
@@ -54,5 +57,19 @@ private:
 		esp_wifi_deinit();
 		esp_event_loop_delete_default();
 		esp_netif_deinit();
+	}
+
+	esp_err_t initialize_nvs()
+	{
+		esp_err_t err = nvs_flash_init();
+
+		if (err == ESP_ERR_NVS_NO_FREE_PAGES ||
+			err == ESP_ERR_NVS_NEW_VERSION_FOUND)
+		{
+			ESP_ERROR_CHECK(nvs_flash_erase());
+			err = nvs_flash_init();
+		}
+
+		return err;
 	}
 };

@@ -24,6 +24,7 @@ void blink_led(LEDOnboardController& led_controller, const uint8_t led_state)
 extern "C" void app_main(void)
 {
 	static Application application;
+	application.initialize();
 	application.start();
 	// that's it, the loop is managed by application
 	

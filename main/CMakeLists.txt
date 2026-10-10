@@ -9,5 +9,5 @@ idf_component_register(
     	"internet.cpp"
     	"webserver.cpp"
     INCLUDE_DIRS "."
-    REQUIRES esp_wifi
+    REQUIRES esp_wifi nvs_flash
 )
