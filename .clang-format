@@ -1,0 +1,68 @@
+---
+Language: Cpp
+BasedOnStyle: LLVM
+
+# Indentation and layout
+IndentWidth: 4
+ContinuationIndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 100
+AccessModifierOffset: -4
+NamespaceIndentation: None
+IndentAccessModifiers: false
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: false
+
+# Pointer/reference alignment: `Type* value`, `Type& value`
+DerivePointerAlignment: false
+PointerAlignment: Left
+ReferenceAlignment: Pointer
+
+# Includes
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^<[^/]+>$'
+    Priority: 1
+  - Regex: '^<.*>$'
+    Priority: 2
+  - Regex: '^".*"'
+    Priority: 3
+
+# Modern C++ formatting
+Cpp11BracedListStyle: true
+SpaceBeforeParens: ControlStatements
+SpaceAfterCStyleCast: false
+SpacesInAngles: Never
+SpaceInEmptyBlock: false
+SpaceInEmptyParentheses: false
+PackConstructorInitializers: Never
+ConstructorInitializerIndentWidth: 4
+BreakConstructorInitializers: BeforeComma
+BreakInheritanceList: BeforeComma
+AlignAfterOpenBracket: Align
+AlignOperands: Align
+AlignConsecutiveAssignments: None
+AlignConsecutiveDeclarations: None
+AlignTrailingComments: true
+BinPackArguments: false
+BinPackParameters: false
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+PenaltyReturnTypeOnItsOwnLine: 200
+PenaltyBreakBeforeFirstCallParameter: 100
+PenaltyExcessCharacter: 1000000
+
+# Keep templates and concepts readable
+AlwaysBreakTemplateDeclarations: Yes
+BreakBeforeConceptDeclarations: Always
+SpaceBeforeAssignmentOperators: true
+
+# Comments and preprocessor
+ReflowComments: true
+CommentPragmas: '^ IWYU pragma:'
+IndentPPDirectives: BeforeHash
