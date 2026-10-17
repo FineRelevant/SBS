@@ -5,7 +5,7 @@
       "compilerPath": "",
       "cStandard": "c17",
       "compileCommands": "${config:idf.buildPath}/compile_commands.json",
-      "intelliSenseMode": "windows-clang-arm",
+      "intelliSenseMode": "windows-gcc-arm",
       "includePath": [
         "${workspaceFolder}/**"
       ],
