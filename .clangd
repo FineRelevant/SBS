@@ -1,0 +1,35 @@
+---
+CompileFlags:
+  # Avoid conflicting standard flags inherited from build commands.
+  Remove: [-std=c++14, -std=c++17, -std=c++20, -std=c++2b, -std=c++latest, -std=c++23]
+  CompilationDatabase: build
+
+Diagnostics:
+  # clang-tidy settings live in .clang-tidy; clangd will discover that file.
+  ClangTidy:
+    Add:
+      - modernize-*
+      - performance-*
+      - readability-*
+      - bugprone-*
+      - cppcoreguidelines-*
+    Remove:
+      # These often create noisy or project-specific advice.
+      - readability-identifier-length
+      - readability-magic-numbers
+      - cppcoreguidelines-avoid-magic-numbers
+      - cppcoreguidelines-owning-memory
+      - cppcoreguidelines-pro-bounds-pointer-arithmetic
+    CheckOptions:
+      readability-identifier-naming.VariableCase: lower_case
+      readability-identifier-naming.PrivateMemberCase: lower_case
+      readability-identifier-naming.PrivateMemberPrefix: m_
+      readability-identifier-naming.ClassCase: CamelCase
+      readability-identifier-naming.StructCase: CamelCase
+      readability-identifier-naming.EnumCase: CamelCase
+      readability-identifier-naming.EnumConstantCase: CamelCase
+      readability-identifier-naming.FunctionCase: lower_case
+      readability-identifier-naming.MethodCase: lower_case
+      readability-identifier-naming.ConstantCase: UPPER_CASE
+      readability-identifier-naming.GlobalConstantCase: UPPER_CASE
+      readability-identifier-naming.NamespaceCase: lower_case
