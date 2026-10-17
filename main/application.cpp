@@ -4,13 +4,13 @@
 
 Application::Application()
 	: _event_queue(), _event_dispatcher(_event_queue), _event_dispatcher_task(_event_dispatcher, "event_dispatcher", 5),
-	  _internet_config {
+	  _internet_config{
 		  .station{
-			  .ssid = "HomeWiFi",
-			  .password = "your-wifi-password",
+			  .ssid = "RT-GPON-01A6",
+			  .password = "ZyhVg2m6",
 		  },
 		  .access_point{
-			  .ssid = "Device-Setup",
+			  .ssid = "SetupNetwork",
 			  .password = "setup-password",
 			  .channel = 1,
 			  .max_connections = 4,
@@ -28,7 +28,8 @@ Application::Application()
 	  },
 	  _wifi_service(_internet_config, _event_dispatcher)
 // etc
-{}
+{
+}
 
 void Application::initialize()
 {
@@ -50,6 +51,15 @@ void Application::start()
 	ESP_LOGI("Application", "AP start result: %s",
 			 esp_err_to_name(ap_result));
 	ESP_ERROR_CHECK(ap_result);
+	const esp_err_t sta_result = _wifi_service.start_station();
+	ESP_LOGI("Application", "AP start result: %s",
+			 esp_err_to_name(sta_result));
+	ESP_ERROR_CHECK(sta_result);
 
 	ESP_LOGI("Application", "Application startup complete");
+}
+
+void Application::stop()
+{
+	shutdown_networking();
 }

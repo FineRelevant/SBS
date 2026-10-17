@@ -6,5 +6,5 @@
     <BuildType Name="Tests (Release)" />
     <Platform Name="VisualGDB" />
   </Configurations>
-  <Project Path="Alpha-0.1.vgdbproj" Type="803fd0c6-d64e-4e16-9dc3-1daec859a3d2" Id="d98c4299-a6f4-43f9-bda7-ee44c2a6f077" />
+  <Project Path="SBS-Project.vgdbproj" Type="803fd0c6-d64e-4e16-9dc3-1daec859a3d2" Id="d98c4299-a6f4-43f9-bda7-ee44c2a6f077" />
 </Solution>

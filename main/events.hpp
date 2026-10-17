@@ -323,4 +323,4 @@ namespace event
 		HandlerLists_t _handler_lists{};
 		std::uint32_t _next_sequence_id{0};
 	};
-}
+} // namespace event

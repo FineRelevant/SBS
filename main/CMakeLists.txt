@@ -3,11 +3,14 @@ idf_component_register(
     	"main.cpp"
     	"led.cpp"
     	"events.cpp"
-    	"application.cpp"
     	"task.cpp"
     	"scheduler.cpp"
-    	"internet.cpp"
-    	"webserver.cpp"
+    	"wifi.cpp"
+    	"httpserver.cpp"
+    	"application.cpp"
+    	"httpclient.cpp"
+    	"provisioning.cpp"
+    	filesystem.cpp
+    	nvs.cpp
     INCLUDE_DIRS "."
-    REQUIRES esp_wifi nvs_flash
-)
+    REQUIRES esp_wifi nvs_flash)
