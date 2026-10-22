@@ -23,7 +23,6 @@ Diagnostics:
     CheckOptions:
       readability-identifier-naming.VariableCase: lower_case
       readability-identifier-naming.PrivateMemberCase: lower_case
-      readability-identifier-naming.PrivateMemberPrefix: m_
       readability-identifier-naming.ClassCase: CamelCase
       readability-identifier-naming.StructCase: CamelCase
       readability-identifier-naming.EnumCase: CamelCase

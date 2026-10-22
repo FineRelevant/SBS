@@ -1043,28 +1043,6 @@ CONFIG_PARTITION_TABLE_MD5=y
 # end of Partition Table
 
 #
-# Example Configuration
-#
-# default:
-CONFIG_ENV_GPIO_RANGE_MIN=0
-# default:
-CONFIG_ENV_GPIO_RANGE_MAX=30
-# default:
-CONFIG_ENV_GPIO_IN_RANGE_MAX=30
-# default:
-CONFIG_ENV_GPIO_OUT_RANGE_MAX=30
-# CONFIG_BLINK_LED_GPIO is not set
-CONFIG_BLINK_LED_STRIP=y
-# default:
-CONFIG_BLINK_LED_STRIP_BACKEND_RMT=y
-# default:
-# CONFIG_BLINK_LED_STRIP_BACKEND_SPI is not set
-CONFIG_BLINK_GPIO=8
-# default:
-CONFIG_BLINK_PERIOD=1000
-# end of Example Configuration
-
-#
 # Compiler options
 #
 # default:
@@ -1169,6 +1147,31 @@ CONFIG_COMPILER_CXX_GLIBCXX_CONSTEXPR_NO_CHANGE=y
 # default:
 CONFIG_EFUSE_MAX_BLK_LEN=256
 # end of eFuse Bit Manager
+
+#
+# ESP-TLS
+#
+# default:
+CONFIG_ESP_TLS_USING_MBEDTLS=y
+# default:
+# CONFIG_ESP_TLS_CUSTOM_STACK is not set
+# default:
+CONFIG_ESP_TLS_USE_DS_PERIPHERAL=y
+# default:
+# CONFIG_ESP_TLS_CLIENT_SESSION_TICKETS is not set
+# default:
+# CONFIG_ESP_TLS_SERVER_SESSION_TICKETS is not set
+# default:
+# CONFIG_ESP_TLS_SERVER_CERT_SELECT_HOOK is not set
+# default:
+# CONFIG_ESP_TLS_SERVER_MIN_AUTH_MODE_OPTIONAL is not set
+# default:
+# CONFIG_ESP_TLS_PSK_VERIFICATION is not set
+# default:
+# CONFIG_ESP_TLS_INSECURE is not set
+# default:
+CONFIG_ESP_TLS_DYN_BUF_STRATEGY_SUPPORTED=y
+# end of ESP-TLS
 
 #
 # Wireless Coexistence
@@ -1279,6 +1282,50 @@ CONFIG_ESP_EVENT_POST_FROM_ISR_SIZE=4
 # default:
 CONFIG_ESP_EVENT_POST_FROM_IRAM_ISR=y
 # end of Event Loop Library
+
+#
+# ESP HTTP client
+#
+# default:
+CONFIG_ESP_HTTP_CLIENT_ENABLE_HTTPS=y
+# default:
+# CONFIG_ESP_HTTP_CLIENT_ENABLE_BASIC_AUTH is not set
+# default:
+# CONFIG_ESP_HTTP_CLIENT_ENABLE_DIGEST_AUTH is not set
+# default:
+# CONFIG_ESP_HTTP_CLIENT_ENABLE_CUSTOM_TRANSPORT is not set
+# default:
+# CONFIG_ESP_HTTP_CLIENT_ENABLE_GET_CONTENT_RANGE is not set
+# default:
+CONFIG_ESP_HTTP_CLIENT_EVENT_POST_TIMEOUT=2000
+# default:
+# CONFIG_ESP_HTTP_CLIENT_SAVE_RESPONSE_HEADERS is not set
+# default:
+CONFIG_ESP_HTTP_CLIENT_STRICT_HEADER_BUFFER=y
+# end of ESP HTTP client
+
+#
+# HTTP Server
+#
+# default:
+CONFIG_HTTPD_MAX_REQ_HDR_LEN=1024
+# default:
+CONFIG_HTTPD_MAX_URI_LEN=512
+# default:
+CONFIG_HTTPD_ERR_RESP_NO_DELAY=y
+# default:
+CONFIG_HTTPD_PURGE_BUF_LEN=32
+# default:
+# CONFIG_HTTPD_LOG_PURGE_DATA is not set
+# default:
+# CONFIG_HTTPD_WS_SUPPORT is not set
+# default:
+# CONFIG_HTTPD_QUEUE_WORK_BLOCKING is not set
+# default:
+CONFIG_HTTPD_ENABLE_EVENTS=y
+# default:
+CONFIG_HTTPD_SERVER_EVENT_POST_TIMEOUT=2000
+# end of HTTP Server
 
 #
 # Hardware Settings
@@ -2989,7 +3036,7 @@ CONFIG_MBEDTLS_AES_INTERRUPT_LEVEL=0
 CONFIG_MBEDTLS_AES_HW_SMALL_DATA_LEN_OPTIM=y
 # CONFIG_MBEDTLS_SECURE_ELEMENT_DRIVER_ENABLED is not set
 # default:
-# CONFIG_MBEDTLS_HARDWARE_RSA_DS_PERIPHERAL is not set
+CONFIG_MBEDTLS_HARDWARE_RSA_DS_PERIPHERAL=y
 # end of Hardware Acceleration
 
 #
@@ -3163,6 +3210,22 @@ CONFIG_SPI_FLASH_SUPPORT_GD_CHIP=y
 # default:
 CONFIG_SPI_FLASH_ENABLE_ENCRYPTED_READ_WRITE=y
 # end of SPI Flash driver
+
+#
+# TCP Transport
+#
+
+#
+# Websocket
+#
+# default:
+CONFIG_WS_TRANSPORT=y
+# default:
+CONFIG_WS_BUFFER_SIZE=1024
+# default:
+# CONFIG_WS_DYNAMIC_BUFFER is not set
+# end of Websocket
+# end of TCP Transport
 
 #
 # Virtual file system

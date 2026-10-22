@@ -79,10 +79,10 @@ namespace internet
 	} // namespace
 
 	WifiService::WifiService(
-		InternetConfig config,
+		WifiConfig config,
 		event::EventDispatcher &event_dispatcher)
-		: _config(std::move(config)),
-		  _event_dispatcher(event_dispatcher)
+		: config_(std::move(config)),
+		  event_dispatcher_(event_dispatcher)
 	{
 	}
 
@@ -93,78 +93,78 @@ namespace internet
 
 		cancel_reconnect();
 
-		if (_reconnect_timer != nullptr)
+		if (reconnect_timer_ != nullptr)
 		{
-			xTimerDelete(_reconnect_timer, portMAX_DELAY);
-			_reconnect_timer = nullptr;
+			xTimerDelete(reconnect_timer_, portMAX_DELAY);
+			reconnect_timer_ = nullptr;
 		}
 
-		if (_started)
+		if (started_)
 		{
 			esp_wifi_stop();
-			_started = false;
+			started_ = false;
 		}
 
-		if (_ip_event_handler != nullptr)
+		if (ip_event_handler_ != nullptr)
 		{
 			esp_event_handler_instance_unregister(
 				IP_EVENT,
 				ESP_EVENT_ANY_ID,
-				_ip_event_handler);
+				ip_event_handler_);
 
-			_ip_event_handler = nullptr;
+			ip_event_handler_ = nullptr;
 		}
 
-		if (_wifi_event_handler != nullptr)
+		if (wifi_event_handler_ != nullptr)
 		{
 			esp_event_handler_instance_unregister(
 				WIFI_EVENT,
 				ESP_EVENT_ANY_ID,
-				_wifi_event_handler);
+				wifi_event_handler_);
 
-			_wifi_event_handler = nullptr;
+			wifi_event_handler_ = nullptr;
 		}
 
-		if (_access_point_netif != nullptr)
+		if (access_point_netif_ != nullptr)
 		{
-			esp_netif_destroy(_access_point_netif);
-			_access_point_netif = nullptr;
+			esp_netif_destroy(access_point_netif_);
+			access_point_netif_ = nullptr;
 		}
 
-		if (_station_netif != nullptr)
+		if (station_netif_ != nullptr)
 		{
-			esp_netif_destroy(_station_netif);
-			_station_netif = nullptr;
+			esp_netif_destroy(station_netif_);
+			station_netif_ = nullptr;
 		}
 	}
 
-	esp_err_t WifiService::start()
+	std::expected<void, esp_err_t> WifiService::start()
 	{
-		if (_started)
-			return ESP_ERR_INVALID_STATE;
+		if (started_)
+			return std::unexpected{ESP_ERR_INVALID_STATE};
 
-		if (!valid_access_point_config(_config.access_point))
-			return ESP_ERR_INVALID_ARG;
+		if (!valid_access_point_config(config_.access_point))
+			return std::unexpected{ESP_ERR_INVALID_ARG};
 
-		if (_config.reconnect.initial_delay_ms == 0 ||
-			_config.reconnect.max_delay_ms <
-				_config.reconnect.initial_delay_ms)
+		if (config_.reconnect.initial_delay_ms == 0 ||
+			config_.reconnect.max_delay_ms <
+				config_.reconnect.initial_delay_ms)
 		{
-			return ESP_ERR_INVALID_ARG;
+			return std::unexpected{ESP_ERR_INVALID_ARG};
 		}
 
-		_station_netif = esp_netif_create_default_wifi_sta();
+		station_netif_ = esp_netif_create_default_wifi_sta();
 
-		if (_station_netif == nullptr)
-			return ESP_ERR_NO_MEM;
+		if (station_netif_ == nullptr)
+			return std::unexpected{ESP_ERR_NO_MEM};
 
-		_access_point_netif = esp_netif_create_default_wifi_ap();
+		access_point_netif_ = esp_netif_create_default_wifi_ap();
 
-		if (_access_point_netif == nullptr)
+		if (access_point_netif_ == nullptr)
 		{
-			esp_netif_destroy(_station_netif);
-			_station_netif = nullptr;
-			return ESP_ERR_NO_MEM;
+			esp_netif_destroy(station_netif_);
+			station_netif_ = nullptr;
+			return std::unexpected{ESP_ERR_NO_MEM};
 		}
 
 		// Both interfaces are configured below.
@@ -173,38 +173,34 @@ namespace internet
 		if (result != ESP_OK)
 			goto cleanup;
 
-		result = configure_station();
+		result = configure_station(config_.station);
 
 		if (result != ESP_OK)
 			goto cleanup;
 
-		result = configure_access_point();
+		result = configure_access_point(config_.access_point);
 
 		if (result != ESP_OK)
 			goto cleanup;
 
-		_station_enabled = valid_station_config(_config.station);
-
-		_provisioning_active =
-			!_station_enabled &&
-			_config.provisioning.enabled &&
-			_config.provisioning.start_if_unconfigured;
-
-		_access_point_enabled = _provisioning_active;
+		station_enabled_ = valid_station_config(config_.station);
+		access_point_enabled_ = true;
+		reconnect_suppressed_ = false;
+		reconnect_delay_ms_ = 0;
 
 		result = update_mode();
 
 		if (result != ESP_OK)
 			goto cleanup;
 
-		_reconnect_timer = xTimerCreate(
+		reconnect_timer_ = xTimerCreate(
 			"wifi_retry",
-			pdMS_TO_TICKS(_config.reconnect.initial_delay_ms),
+			pdMS_TO_TICKS(config_.reconnect.initial_delay_ms),
 			pdFALSE,
 			this,
 			&WifiService::reconnect_timer_callback);
 
-		if (_reconnect_timer == nullptr)
+		if (reconnect_timer_ == nullptr)
 		{
 			result = ESP_ERR_NO_MEM;
 			goto cleanup;
@@ -215,7 +211,7 @@ namespace internet
 			ESP_EVENT_ANY_ID,
 			&WifiService::esp_event_handler,
 			this,
-			&_wifi_event_handler);
+			&wifi_event_handler_);
 
 		if (result != ESP_OK)
 			goto cleanup;
@@ -225,7 +221,7 @@ namespace internet
 			ESP_EVENT_ANY_ID,
 			&WifiService::esp_event_handler,
 			this,
-			&_ip_event_handler);
+			&ip_event_handler_);
 
 		if (result != ESP_OK)
 			goto cleanup;
@@ -235,136 +231,130 @@ namespace internet
 		if (result != ESP_OK)
 			goto cleanup;
 
-		_started = true;
+		started_ = true;
 
-		if (_station_enabled)
-			_station_state = StationState::Connecting;
+		if (station_enabled_)
+			station_state_ = StationState::Connecting;
 		else
-			_station_state = StationState::Stopped;
+			station_state_ = StationState::Stopped;
 
-		if (_provisioning_active)
-		{
-			_event_dispatcher.publish(
-				event::Source::Network,
-				event::WifiProvisioningStarted{});
-		}
-
-		return ESP_OK;
+		return {};
 
 	cleanup:
-		if (_started)
+		if (started_)
 		{
 			esp_wifi_stop();
-			_started = false;
+			started_ = false;
 		}
 
-		if (_ip_event_handler != nullptr)
+		if (ip_event_handler_ != nullptr)
 		{
 			esp_event_handler_instance_unregister(
 				IP_EVENT,
 				ESP_EVENT_ANY_ID,
-				_ip_event_handler);
+				ip_event_handler_);
 
-			_ip_event_handler = nullptr;
+			ip_event_handler_ = nullptr;
 		}
 
-		if (_wifi_event_handler != nullptr)
+		if (wifi_event_handler_ != nullptr)
 		{
 			esp_event_handler_instance_unregister(
 				WIFI_EVENT,
 				ESP_EVENT_ANY_ID,
-				_wifi_event_handler);
+				wifi_event_handler_);
 
-			_wifi_event_handler = nullptr;
+			wifi_event_handler_ = nullptr;
 		}
 
-		if (_reconnect_timer != nullptr)
+		if (reconnect_timer_ != nullptr)
 		{
-			xTimerDelete(_reconnect_timer, portMAX_DELAY);
-			_reconnect_timer = nullptr;
+			xTimerDelete(reconnect_timer_, portMAX_DELAY);
+			reconnect_timer_ = nullptr;
 		}
 
-		if (_access_point_netif != nullptr)
+		if (access_point_netif_ != nullptr)
 		{
-			esp_netif_destroy(_access_point_netif);
-			_access_point_netif = nullptr;
+			esp_netif_destroy(access_point_netif_);
+			access_point_netif_ = nullptr;
 		}
 
-		if (_station_netif != nullptr)
+		if (station_netif_ != nullptr)
 		{
-			esp_netif_destroy(_station_netif);
-			_station_netif = nullptr;
+			esp_netif_destroy(station_netif_);
+			station_netif_ = nullptr;
 		}
 
-		_station_enabled = false;
-		_access_point_enabled = false;
-		_provisioning_active = false;
-		_station_state = StationState::Stopped;
-		_access_point_state = AccessPointState::Stopped;
+		station_enabled_ = false;
+		access_point_enabled_ = false;
+		station_state_ = StationState::Stopped;
+		access_point_state_ = AccessPointState::Stopped;
 
-		return result;
+		reconnect_suppressed_ = false;
+		reconnect_delay_ms_ = 0;
+
+		return std::unexpected{result};
 	}
 
-	esp_err_t WifiService::stop()
+	std::expected<void, esp_err_t> WifiService::stop()
 	{
-		if (!_started)
-			return ESP_ERR_INVALID_STATE;
+		if (!started_)
+			return std::unexpected{ESP_ERR_INVALID_STATE};
 
 		cancel_reconnect();
 
 		const auto result = esp_wifi_stop();
 
 		if (result != ESP_OK)
-			return result;
+			return std::unexpected{result};
 
-		_started = false;
-		_station_enabled = false;
-		_access_point_enabled = false;
-		_provisioning_active = false;
-		_reconnect_suppressed = true;
+		started_ = false;
+		station_enabled_ = false;
+		access_point_enabled_ = false;
+		reconnect_suppressed_ = true;
 
-		_station_state = StationState::Stopped;
-		_access_point_state = AccessPointState::Stopped;
+		station_state_ = StationState::Stopped;
+		access_point_state_ = AccessPointState::Stopped;
 
-		return ESP_OK;
+		return {};
 	}
 
-	esp_err_t WifiService::start_station()
+	std::expected<void, esp_err_t> WifiService::start_station()
 	{
-		if (!_started)
-			return ESP_ERR_INVALID_STATE;
+		if (!started_)
+			return std::unexpected{ESP_ERR_INVALID_STATE};
 
-		if (!valid_station_config(_config.station))
-			return ESP_ERR_INVALID_ARG;
+		if (!valid_station_config(config_.station))
+			return std::unexpected{ESP_ERR_INVALID_ARG};
 
-		if (_station_enabled)
-			return ESP_OK;
+		if (station_enabled_)
+			return {};
 
-		_station_enabled = true;
-		_reconnect_suppressed = false;
+		station_enabled_ = true;
+		reconnect_suppressed_ = false;
 
 		const auto result = update_mode();
 
 		if (result != ESP_OK)
 		{
-			_station_enabled = false;
-			return result;
+			station_enabled_ = false;
+			return std::unexpected{result};
 		}
 
-		_station_state = StationState::Connecting;
+		station_state_ = StationState::Connecting;
 
 		return connect();
 	}
 
-	esp_err_t WifiService::stop_station()
+	std::expected<void, esp_err_t> WifiService::stop_station()
 	{
-		if (!_started)
-			return ESP_ERR_INVALID_STATE;
+		if (!started_)
+			return std::unexpected{ESP_ERR_INVALID_STATE};
 
-		if (!_station_enabled)
-			return ESP_OK;
+		if (!station_enabled_)
+			return {};
 
-		_reconnect_suppressed = true;
+		reconnect_suppressed_ = true;
 		cancel_reconnect();
 
 		const auto disconnect_result = esp_wifi_disconnect();
@@ -372,63 +362,64 @@ namespace internet
 		if (disconnect_result != ESP_OK &&
 			disconnect_result != ESP_ERR_WIFI_NOT_CONNECT)
 		{
-			_reconnect_suppressed = false;
-			return disconnect_result;
+			reconnect_suppressed_ = false;
+			return std::unexpected{disconnect_result};
 		}
 
-		_station_enabled = false;
+		station_enabled_ = false;
 
 		const auto result = update_mode();
 
 		if (result != ESP_OK)
 		{
-			_station_enabled = true;
-			_reconnect_suppressed = false;
-			return result;
+			station_enabled_ = true;
+			reconnect_suppressed_ = false;
+			return std::unexpected{result};
 		}
 
-		_station_state = StationState::Stopped;
+		station_state_ = StationState::Stopped;
 		publish_station_stopped();
 
-		return ESP_OK;
+		return {};
 	}
 
-	esp_err_t WifiService::connect()
+	std::expected<void, esp_err_t> WifiService::connect()
 	{
-		if (!_started || !_station_enabled)
-			return ESP_ERR_INVALID_STATE;
+		if (!started_ || !station_enabled_)
+			return std::unexpected{ESP_ERR_INVALID_STATE};
 
-		if (!valid_station_config(_config.station))
-			return ESP_ERR_INVALID_ARG;
+		if (!valid_station_config(config_.station))
+			return std::unexpected{ESP_ERR_INVALID_ARG};
 
-		if (_station_state == StationState::Connected ||
-			_station_state == StationState::Connecting)
+		if (station_state_ == StationState::Connected ||
+			station_state_ == StationState::Connecting)
 		{
-			return ESP_OK;
+			return {};
 		}
 
-		_reconnect_suppressed = false;
+		reconnect_suppressed_ = false;
 		cancel_reconnect();
 
-		_station_state = StationState::Connecting;
+		station_state_ = StationState::Connecting;
 
 		const auto result = esp_wifi_connect();
 
 		if (result != ESP_OK)
 		{
-			_station_state = StationState::Disconnected;
+			station_state_ = StationState::Disconnected;
 			schedule_reconnect();
+			return std::unexpected{result};
 		}
 
-		return result;
+		return {};
 	}
 
-	esp_err_t WifiService::disconnect()
+	std::expected<void, esp_err_t> WifiService::disconnect()
 	{
-		if (!_started || !_station_enabled)
-			return ESP_ERR_INVALID_STATE;
+		if (!started_ || !station_enabled_)
+			return std::unexpected{ESP_ERR_INVALID_STATE};
 
-		_reconnect_suppressed = true;
+		reconnect_suppressed_ = true;
 		cancel_reconnect();
 
 		const auto result = esp_wifi_disconnect();
@@ -436,189 +427,122 @@ namespace internet
 		if (result != ESP_OK &&
 			result != ESP_ERR_WIFI_NOT_CONNECT)
 		{
-			_reconnect_suppressed = false;
-			return result;
+			reconnect_suppressed_ = false;
+			return std::unexpected{result};
 		}
 
-		_station_state = StationState::Disconnected;
+		station_state_ = StationState::Disconnected;
 
-		return ESP_OK;
+		return {};
 	}
 
-	esp_err_t WifiService::start_access_point()
+	std::expected<void, esp_err_t> WifiService::start_access_point()
 	{
-		if (!_started)
-			return ESP_ERR_INVALID_STATE;
+		if (!started_)
+			return std::unexpected{ESP_ERR_INVALID_STATE};
 
-		if (_access_point_enabled)
-			return ESP_OK;
+		if (access_point_enabled_)
+			return {};
 
-		_access_point_enabled = true;
+		access_point_enabled_ = true;
 
 		const auto result = update_mode();
 
 		if (result != ESP_OK)
-			_access_point_enabled = false;
+		{
+			access_point_enabled_ = false;
+			return std::unexpected{result};
+		}
 
-		return result;
+		return {};
 	}
 
-	esp_err_t WifiService::stop_access_point()
+	std::expected<void, esp_err_t> WifiService::stop_access_point()
 	{
-		if (!_started)
-			return ESP_ERR_INVALID_STATE;
+		if (!started_)
+			return std::unexpected{ESP_ERR_INVALID_STATE};
 
-		if (!_access_point_enabled)
-			return ESP_OK;
+		if (!access_point_enabled_)
+			return {};
 
-		if (_provisioning_active)
-			return ESP_ERR_INVALID_STATE;
-
-		_access_point_enabled = false;
+		access_point_enabled_ = false;
 
 		const auto result = update_mode();
 
 		if (result != ESP_OK)
-			_access_point_enabled = true;
-
-		return result;
+		{
+			access_point_enabled_ = true;
+			return std::unexpected{result};
+		}
+		return {};
 	}
 
-	esp_err_t WifiService::configure_station(StationConfig config)
+	std::expected<void, esp_err_t> WifiService::configure_wifi_service(WifiConfig config)
 	{
-		if (!valid_station_config(config))
-			return ESP_ERR_INVALID_ARG;
+		const bool station_configured = !config.station.ssid.empty();
 
-		const auto previous_config = _config.station;
-		const bool was_enabled = _station_enabled;
+		if (station_configured && !valid_station_config(config.station))
+			return std::unexpected{ESP_ERR_INVALID_ARG};
 
-		// Apply the new configuration before committing it.
-		wifi_config_t driver_config{};
+		if (!valid_access_point_config(config.access_point))
+			return std::unexpected{ESP_ERR_INVALID_ARG};
 
-		if (!copy_string(config.ssid, driver_config.sta.ssid) ||
-			!copy_string(config.password, driver_config.sta.password))
+		if (config.reconnect.initial_delay_ms == 0 ||
+			config.reconnect.max_delay_ms <
+				config.reconnect.initial_delay_ms)
 		{
-			return ESP_ERR_INVALID_ARG;
+			return std::unexpected{ESP_ERR_INVALID_ARG};
 		}
 
-		if (_started && was_enabled)
+		if (!started_)
 		{
-			const auto disconnect_result = esp_wifi_disconnect();
+			config_ = std::move(config);
+			return {};
+		}
 
-			if (disconnect_result != ESP_OK &&
-				disconnect_result != ESP_ERR_WIFI_NOT_CONNECT)
+		const auto previous_config = config_;
+
+		auto result = configure_station(config.station);
+
+		if (result == ESP_OK)
+			result = configure_access_point(config.access_point);
+
+		if (result != ESP_OK)
+		{
+			const auto restore_station =
+				configure_station(previous_config.station);
+
+			const auto restore_ap =
+				configure_access_point(previous_config.access_point);
+
+			if (restore_station != ESP_OK || restore_ap != ESP_OK)
 			{
-				return disconnect_result;
+				ESP_LOGE(
+					TAG,
+					"Failed to restore previous Wi-Fi driver configuration");
 			}
+
+			return std::unexpected{result};
 		}
 
-		_config.station = std::move(config);
+		config_ = std::move(config);
 
-		if (_started)
-		{
-			const auto result = esp_wifi_set_config(
-				WIFI_IF_STA,
-				&driver_config);
-
-			if (result != ESP_OK)
-			{
-				_config.station = previous_config;
-				return result;
-			}
-		}
-
+		// Reconfiguration invalidates any pending retry using old settings.
 		cancel_reconnect();
-		_reconnect_suppressed = false;
-		_station_enabled = true;
-		_station_state = StationState::Connecting;
+		reconnect_suppressed_ = false;
 
-		if (_provisioning_active)
+		if (station_enabled_ && station_configured)
 		{
-			const auto result = end_provisioning();
-
-			if (result != ESP_OK)
-				return result;
-		}
-		else if (_started)
-		{
-			const auto result = update_mode();
-
-			if (result != ESP_OK)
-				return result;
+			station_state_ = StationState::Disconnected;
+			return connect();
 		}
 
-		if (!_started)
-			return ESP_OK;
-
-		return connect();
-	}
-
-	esp_err_t WifiService::begin_provisioning()
-	{
-		if (!_started)
-			return ESP_ERR_INVALID_STATE;
-
-		if (!_config.provisioning.enabled)
-			return ESP_ERR_NOT_SUPPORTED;
-
-		if (_provisioning_active)
-			return ESP_OK;
-
-		cancel_reconnect();
-
-		_provisioning_active = true;
-		_access_point_enabled = true;
-
-		const auto result = update_mode();
-
-		if (result != ESP_OK)
-		{
-			_provisioning_active = false;
-			_access_point_enabled = false;
-			return result;
-		}
-
-		_event_dispatcher.publish(
-			event::Source::Network,
-			event::WifiProvisioningStarted{});
-
-		return ESP_OK;
-	}
-
-	esp_err_t WifiService::end_provisioning()
-	{
-		if (!_started)
-			return ESP_ERR_INVALID_STATE;
-
-		if (!_provisioning_active)
-			return ESP_OK;
-
-		_provisioning_active = false;
-
-		// Keep the AP enabled if it was explicitly enabled for another
-		// application purpose. A production application may track that
-		// requirement separately from provisioning.
-		_access_point_enabled = false;
-
-		const auto result = update_mode();
-
-		if (result != ESP_OK)
-		{
-			_provisioning_active = true;
-			_access_point_enabled = true;
-			return result;
-		}
-
-		_event_dispatcher.publish(
-			event::Source::Network,
-			event::WifiProvisioningStopped{});
-
-		return ESP_OK;
+		return {};
 	}
 
 	void WifiService::set_reconnect_enabled(bool enabled)
 	{
-		_config.reconnect.enabled = enabled;
+		config_.reconnect.enabled = enabled;
 
 		if (!enabled)
 		{
@@ -626,30 +550,21 @@ namespace internet
 			return;
 		}
 
-		if (_started &&
-			_station_enabled &&
-			_station_state == StationState::Disconnected)
+		if (started_ &&
+			station_enabled_ &&
+			station_state_ == StationState::Disconnected)
 		{
 			schedule_reconnect();
 		}
 	}
 
-	esp_netif_ip_info_t WifiService::station_ip_info() const noexcept
-	{
-		esp_netif_ip_info_t info{};
-
-		if (_station_netif != nullptr)
-			esp_netif_get_ip_info(_station_netif, &info);
-
-		return info;
-	}
-
-	esp_err_t WifiService::configure_station()
+	esp_err_t WifiService::configure_station(
+		const StationConfig& station)
 	{
 		wifi_config_t config{};
 
-		if (!copy_string(_config.station.ssid, config.sta.ssid) ||
-			!copy_string(_config.station.password, config.sta.password))
+		if (!copy_string(station.ssid, config.sta.ssid) ||
+			!copy_string(station.password, config.sta.password))
 		{
 			return ESP_ERR_INVALID_ARG;
 		}
@@ -657,40 +572,28 @@ namespace internet
 		return esp_wifi_set_config(WIFI_IF_STA, &config);
 	}
 
-	esp_err_t WifiService::configure_access_point()
+	esp_err_t WifiService::configure_access_point(
+		const AccessPointConfig& access_point)
 	{
 		wifi_config_t config{};
 
-		if (!copy_string(_config.access_point.ssid, config.ap.ssid) ||
-			!copy_string(_config.access_point.password, config.ap.password))
+		if (!copy_string(access_point.ssid, config.ap.ssid) ||
+			!copy_string(access_point.password, config.ap.password))
 		{
 			return ESP_ERR_INVALID_ARG;
 		}
 
-		config.ap.channel = _config.access_point.channel;
-		config.ap.max_connection = _config.access_point.max_connections;
-		config.ap.ssid_hidden = _config.access_point.hidden;
+		config.ap.channel = access_point.channel;
+		config.ap.max_connection = access_point.max_connections;
+		config.ap.ssid_hidden = access_point.hidden;
 
-		config.ap.authmode = _config.access_point.password.empty()
-								 ? WIFI_AUTH_OPEN
-								 : WIFI_AUTH_WPA2_PSK;
+		config.ap.authmode = access_point.password.empty()
+			? WIFI_AUTH_OPEN
+			: WIFI_AUTH_WPA2_PSK;
 
 		return esp_wifi_set_config(WIFI_IF_AP, &config);
 	}
 
-	esp_err_t WifiService::update_mode()
-	{
-		wifi_mode_t mode = WIFI_MODE_NULL;
-
-		if (_station_enabled && _access_point_enabled)
-			mode = WIFI_MODE_APSTA;
-		else if (_station_enabled)
-			mode = WIFI_MODE_STA;
-		else if (_access_point_enabled)
-			mode = WIFI_MODE_AP;
-
-		return esp_wifi_set_mode(mode);
-	}
 
 	void WifiService::reconnect_timer_callback(TimerHandle_t timer)
 	{
@@ -703,36 +606,35 @@ namespace internet
 
 	void WifiService::schedule_reconnect()
 	{
-		if (!_started ||
-			!_station_enabled ||
-			!_config.reconnect.enabled ||
-			_reconnect_suppressed ||
-			_provisioning_active ||
-			_reconnect_timer == nullptr)
+		if (!started_ ||
+			!station_enabled_ ||
+			!config_.reconnect.enabled ||
+			reconnect_suppressed_ ||
+			reconnect_timer_ == nullptr)
 		{
 			return;
 		}
 
-		if (_reconnect_delay_ms == 0)
+		if (reconnect_delay_ms_ == 0)
 		{
-			_reconnect_delay_ms =
-				_config.reconnect.initial_delay_ms;
+			reconnect_delay_ms_ =
+				config_.reconnect.initial_delay_ms;
 		}
 		else
 		{
-			const auto maximum = _config.reconnect.max_delay_ms;
+			const auto maximum = config_.reconnect.max_delay_ms;
 
-			_reconnect_delay_ms =
-				_reconnect_delay_ms > maximum / 2
+			reconnect_delay_ms_ =
+				reconnect_delay_ms_ > maximum / 2
 					? maximum
-					: std::min(_reconnect_delay_ms * 2, maximum);
+					: std::min(reconnect_delay_ms_ * 2, maximum);
 		}
 
 		const auto ticks = std::max<TickType_t>(
-			pdMS_TO_TICKS(_reconnect_delay_ms),
+			pdMS_TO_TICKS(reconnect_delay_ms_),
 			1);
 
-		if (xTimerChangePeriod(_reconnect_timer, ticks, 0) != pdPASS)
+		if (xTimerChangePeriod(reconnect_timer_, ticks, 0) != pdPASS)
 		{
 			ESP_LOGW(TAG, "Failed to schedule reconnect");
 		}
@@ -740,36 +642,35 @@ namespace internet
 
 	void WifiService::cancel_reconnect()
 	{
-		_reconnect_delay_ms = 0;
+		reconnect_delay_ms_ = 0;
 
-		if (_reconnect_timer != nullptr)
-			xTimerStop(_reconnect_timer, 0);
+		if (reconnect_timer_ != nullptr)
+			xTimerStop(reconnect_timer_, 0);
 	}
 
 	void WifiService::handle_reconnect_timer()
 	{
-		if (!_started ||
-			!_station_enabled ||
-			!_config.reconnect.enabled ||
-			_reconnect_suppressed ||
-			_provisioning_active)
+		if (!started_ ||
+			!station_enabled_ ||
+			!config_.reconnect.enabled ||
+			reconnect_suppressed_)
 		{
 			return;
 		}
 
-		if (_station_state == StationState::Connected ||
-			_station_state == StationState::Connecting)
+		if (station_state_ == StationState::Connected ||
+			station_state_ == StationState::Connecting)
 		{
 			return;
 		}
 
-		_station_state = StationState::Connecting;
+		station_state_ = StationState::Connecting;
 
 		const auto result = esp_wifi_connect();
 
 		if (result != ESP_OK)
 		{
-			_station_state = StationState::Disconnected;
+			station_state_ = StationState::Disconnected;
 
 			ESP_LOGW(
 				TAG,
@@ -808,23 +709,23 @@ namespace internet
 		switch (event_id)
 		{
 		case WIFI_EVENT_STA_START:
-			if (_station_enabled)
+			if (station_enabled_)
 			{
-				_station_state = StationState::Connecting;
+				station_state_ = StationState::Connecting;
 				publish_station_started();
 
 				const auto result = esp_wifi_connect();
 
 				if (result != ESP_OK)
 				{
-					_station_state = StationState::Disconnected;
+					station_state_ = StationState::Disconnected;
 					schedule_reconnect();
 				}
 			}
 			break;
 
 		case WIFI_EVENT_STA_STOP:
-			_station_state = StationState::Stopped;
+			station_state_ = StationState::Stopped;
 			publish_station_stopped();
 			break;
 
@@ -832,7 +733,7 @@ namespace internet
 			const auto *info =
 				static_cast<const wifi_event_sta_connected_t *>(event_data);
 
-			_station_state = StationState::Connected;
+			station_state_ = StationState::Connected;
 			publish_station_connected(*info);
 			break;
 		}
@@ -841,7 +742,7 @@ namespace internet
 			const auto *info =
 				static_cast<const wifi_event_sta_disconnected_t *>(event_data);
 
-			_station_state = _station_enabled
+			station_state_ = station_enabled_
 								 ? StationState::Disconnected
 								 : StationState::Stopped;
 
@@ -851,12 +752,12 @@ namespace internet
 		}
 
 		case WIFI_EVENT_AP_START:
-			_access_point_state = AccessPointState::Started;
+			access_point_state_ = AccessPointState::Started;
 			publish_ap_started();
 			break;
 
 		case WIFI_EVENT_AP_STOP:
-			_access_point_state = AccessPointState::Stopped;
+			access_point_state_ = AccessPointState::Stopped;
 			publish_ap_stopped();
 			break;
 
@@ -891,7 +792,7 @@ namespace internet
 			const auto *info =
 				static_cast<const ip_event_got_ip_t *>(event_data);
 
-			_station_state = StationState::Connected;
+			station_state_ = StationState::Connected;
 
 			cancel_reconnect();
 
@@ -905,8 +806,8 @@ namespace internet
 		}
 
 		case IP_EVENT_STA_LOST_IP:
-			if (_station_enabled)
-				_station_state = StationState::Disconnected;
+			if (station_enabled_)
+				station_state_ = StationState::Disconnected;
 
 			publish_station_lost_ip();
 			schedule_reconnect();
@@ -919,14 +820,14 @@ namespace internet
 
 	void WifiService::publish_station_started()
 	{
-		_event_dispatcher.publish(
+		event_dispatcher_.publish(
 			event::Source::Network,
 			event::WifiStationStarted{});
 	}
 
 	void WifiService::publish_station_stopped()
 	{
-		_event_dispatcher.publish(
+		event_dispatcher_.publish(
 			event::Source::Network,
 			event::WifiStationStopped{});
 	}
@@ -942,7 +843,7 @@ namespace internet
 		if (esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK)
 			rssi = ap_info.rssi;
 
-		_event_dispatcher.publish(
+		event_dispatcher_.publish(
 			event::Source::Network,
 			event::WifiStationConnected{
 				.bssid = bssid,
@@ -953,7 +854,7 @@ namespace internet
 	void WifiService::publish_station_disconnected(
 		const wifi_event_sta_disconnected_t &info)
 	{
-		_event_dispatcher.publish(
+		event_dispatcher_.publish(
 			event::Source::Network,
 			event::WifiStationDisconnected{
 				.reason = info.reason});
@@ -962,7 +863,7 @@ namespace internet
 	void WifiService::publish_station_got_ip(
 		const ip_event_got_ip_t &info)
 	{
-		_event_dispatcher.publish(
+		event_dispatcher_.publish(
 			event::Source::Network,
 			event::WifiStationGotIp{
 				.address = info.ip_info.ip.addr,
@@ -972,7 +873,7 @@ namespace internet
 
 	void WifiService::publish_station_lost_ip()
 	{
-		_event_dispatcher.publish(
+		event_dispatcher_.publish(
 			event::Source::Network,
 			event::WifiStationLostIp{});
 	}
@@ -984,7 +885,7 @@ namespace internet
 		if (esp_wifi_get_mac(WIFI_IF_AP, mac.data()) != ESP_OK)
 			mac.fill(0);
 
-		_event_dispatcher.publish(
+		event_dispatcher_.publish(
 			event::Source::Network,
 			event::WifiApStarted{
 				.mac = mac});
@@ -997,7 +898,7 @@ namespace internet
 		if (esp_wifi_get_mac(WIFI_IF_AP, mac.data()) != ESP_OK)
 			mac.fill(0);
 
-		_event_dispatcher.publish(
+		event_dispatcher_.publish(
 			event::Source::Network,
 			event::WifiApStopped{
 				.mac = mac});
@@ -1006,7 +907,7 @@ namespace internet
 	void WifiService::publish_ap_client_connected(
 		const wifi_event_ap_staconnected_t &info)
 	{
-		_event_dispatcher.publish(
+		event_dispatcher_.publish(
 			event::Source::Network,
 			event::WifiApClientConnected{
 				.mac = make_mac(info.mac)});
@@ -1015,7 +916,7 @@ namespace internet
 	void WifiService::publish_ap_client_disconnected(
 		const wifi_event_ap_stadisconnected_t &info)
 	{
-		_event_dispatcher.publish(
+		event_dispatcher_.publish(
 			event::Source::Network,
 			event::WifiApClientDisconnected{
 				.mac = make_mac(info.mac)});

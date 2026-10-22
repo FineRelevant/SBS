@@ -6,11 +6,12 @@ idf_component_register(
     	"task.cpp"
     	"scheduler.cpp"
     	"wifi.cpp"
-    	"httpserver.cpp"
     	"application.cpp"
-    	"httpclient.cpp"
+		"http_server.cpp"
+    	"http_client.cpp"
     	"provisioning.cpp"
-    	filesystem.cpp
-    	nvs.cpp
+    	"filesystem.cpp"
+    	"nvs.cpp"
+		"internet_config.cpp"
     INCLUDE_DIRS "."
-    REQUIRES esp_wifi nvs_flash)
+    REQUIRES esp_wifi nvs_flash esp_http_server esp_http_client)

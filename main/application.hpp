@@ -26,8 +26,8 @@ class Application
 	StaticTask<event::EventDispatcher> _event_dispatcher_task;
 
 	// WiFi
-	internet::InternetConfig _internet_config;
-	internet::WifiService _wifi_service;
+	// internet::InternetConfig _internet_config;
+	// internet::WifiService _wifi_service;
 
 	[[nodiscard]]
 	esp_err_t initialize_networking()

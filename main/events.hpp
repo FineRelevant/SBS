@@ -305,7 +305,7 @@ namespace event
 				.metadata = {
 					.source = source,
 					.sequence_id = _next_sequence_id++,
-					.timestamp = xTaskGetTickCount()},
+					.timestamp = xTaskGetTickCountFromISR()},
 				.data = std::move(data)};
 
 			return _queue.publish_from_isr(
