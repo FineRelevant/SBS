@@ -35,7 +35,7 @@ For day-to-day operation, configuration via the web UI, and hardware details, se
 | Bell output        | 20   | Driven high for `bell_duration_ms`      |
 | Onboard RGB LED    | 8    | WS2812 via RMT (status indication)      |
 
-Default soft-AP address for the configuration website: **192.168.0.4**
+Default soft-AP address for the configuration website running on AP: **192.168.0.176**
 
 ---
 
@@ -247,7 +247,8 @@ idf.py -p /dev/ttyUSB0 flash monitor
 
 ## Known Limitations / Notes
 
-- `start_synchronization()` is currently a stub.
+- `ConfigurationService::start_synchronization()` is currently a stub.
+- `Application::stop()` is currently a stub.
 - Day-of-week selection is not implemented; the active schedule is chosen manually by identifier.
 - Connectivity probing uses several well-known captive-portal endpoints after an IP address is obtained.
 

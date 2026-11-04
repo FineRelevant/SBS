@@ -26,7 +26,7 @@ On a fresh device (or when no valid station credentials are stored) the firmware
 2. On a phone or laptop, join the Wi-Fi network whose SSID defaults to **`Setup`** (password **`Setup123`**).
 3. Open a browser and navigate to:
 
-   **http://192.168.0.4**
+   **http://192.168.0.176**
 
    This is the default IP address of the configuration website while the device is acting as an access point.
 
@@ -201,7 +201,7 @@ No user interaction is required once the schedule and Wi-Fi settings are correct
 | Symptom | Possible cause / action |
 |---------|-------------------------|
 | Cannot join the soft-AP | Confirm SSID `Setup` / password `Setup123`. Reboot the device. |
-| Browser cannot open 192.168.0.4 | Ensure the client is connected to the device’s AP and has obtained a DHCP address in the 192.168.0.x range. |
+| Browser cannot open 192.168.0.176 | Ensure the client is connected to the device’s AP and has obtained a DHCP address in the 192.168.0.x range. |
 | Bells ring at the wrong time | Check the timezone string (prefer POSIX form — see section 6). Verify SNTP has synchronised (device must have Internet access). |
 | No bells at all | Confirm the active schedule contains periods, the schedule file was saved successfully, and the system clock is valid. |
 | Device never joins the home network | Re-enter station SSID/password via the configuration website. Check that the network is 2.4 GHz (ESP32-C6 supports both bands, but verify your router settings). |
@@ -215,7 +215,7 @@ No user interaction is required once the schedule and Wi-Fi settings are correct
 |----------------------|------------------------|
 | Soft-AP SSID         | `Setup`                |
 | Soft-AP password     | `Setup123`             |
-| Soft-AP IP           | **192.168.0.4**        |
+| Soft-AP IP           | **192.168.0.176**        |
 | Station SSID         | `Test`                 |
 | Station password     | `Test1234`             |
 | Operating mode       | Access Point           |
