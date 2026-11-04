@@ -243,8 +243,6 @@ idf.py build
 idf.py -p /dev/ttyUSB0 flash monitor
 ```
 
-A VisualGDB / Visual Studio solution (`SBS-Project.vgdbproj`, `SBS-Project.slnx`) and a VS Code Dev Container configuration are included. The Dev Container is privileged and suitable for ESP-IDF QEMU testing.
-
 ---
 
 ## Known Limitations / Notes
