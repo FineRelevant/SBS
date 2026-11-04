@@ -10,14 +10,14 @@ namespace internet
 {   
 	struct StationConfig
 	{
-		std::string ssid;
-		std::string password;
+		std::string ssid{"Test"};
+		std::string password{"Test1234"};
 	};
 
 	struct AccessPointConfig
 	{
-		std::string ssid;
-		std::string password;
+		std::string ssid{"Setup"};
+		std::string password{"Setup123"};
 
 		std::uint32_t channel{1};
 		std::uint32_t max_connections{4};
@@ -28,9 +28,13 @@ namespace internet
 	struct ReconnectPolicy
 	{
 		bool enabled{true};
+		bool stop_if_reached_threshold{false};
 
 		std::uint32_t initial_delay_ms{1000};
-		std::uint32_t max_delay_ms{30000};
+		std::uint32_t max_delay_ms{3000};
+
+		// Zero means unlimited retries.
+		std::uint32_t consecutive_failures_threshold{5};
 	};
 
     struct WifiConfig
@@ -40,21 +44,28 @@ namespace internet
         ReconnectPolicy reconnect;
     };
 
-	struct ProvisioningConfig
+	struct ConfigurationServiceConfig
 	{
-		bool enabled{true};
-		bool start_if_unconfigured{true};
+		enum class OperatingMode : std::uint8_t
+		{
+			Sta = 0,
+			Ap,
+			ApSta,
+		};
+		OperatingMode mode{OperatingMode::Ap};
 	};
 
 	struct InternetConfig
 	{
-		WifiConfig wifi;
-        ProvisioningConfig provisioning;
+		WifiConfig wifi{};
+        ConfigurationServiceConfig configuration_service{};
 	};
 
-	class InternetConfigLoader final
+	class InternetConfigManager final
 	{
 	  public:
-		std::expected<InternetConfig, esp_err_t> load_from_nvs();
+		InternetConfigManager() = delete;
+		static std::expected<InternetConfig, esp_err_t> load_from_nvs() noexcept;
+		static esp_err_t save_to_nvs(const InternetConfig& config) noexcept;
 	};
 }

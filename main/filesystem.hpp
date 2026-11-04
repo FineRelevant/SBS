@@ -43,10 +43,10 @@ namespace storage
 		FilesystemService &operator=(FilesystemService &&) = delete;
 
 		[[nodiscard]]
-		std::expected<void, esp_err_t> mount();
+		esp_err_t mount();
 
 		[[nodiscard]]
-		std::expected<void, esp_err_t> unmount();
+		esp_err_t unmount();
 
 		[[nodiscard]]
 		bool is_mounted() const noexcept;
@@ -67,30 +67,28 @@ namespace storage
 		read_binary(std::string_view path) const;
 
 		[[nodiscard]]
-		std::expected<void, esp_err_t>
-		write_text(std::string_view path, std::string_view text);
+		esp_err_t write_text(std::string_view path, std::string_view text);
 
 		[[nodiscard]]
-		std::expected<void, esp_err_t>
-		write_binary(
+		esp_err_t write_binary(
 			std::string_view path,
 			const std::vector<std::byte> &data);
 
 		[[nodiscard]]
-		std::expected<void, esp_err_t>
-		append_text(std::string_view path, std::string_view text);
+		esp_err_t append_text(std::string_view path, std::string_view text);
 
 		[[nodiscard]]
-		std::expected<void, esp_err_t>
-		remove(std::string_view path);
+		esp_err_t remove(std::string_view path);
 
 		[[nodiscard]]
-		std::expected<void, esp_err_t>
-		rename(std::string_view from, std::string_view to);
+		esp_err_t rename(std::string_view from, std::string_view to);
+
+		[[nodiscard]]
+		esp_err_t format();
 
 	  private:
 		[[nodiscard]]
-		std::expected<void, esp_err_t> require_mounted() const;
+		esp_err_t require_mounted() const;
 
 		[[nodiscard]]
 		std::expected<std::string, esp_err_t>

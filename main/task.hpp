@@ -6,7 +6,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-template <typename T, std::size_t stack_words = 1024>
+template <typename T, std::size_t stack_words = 8192>
 class StaticTask final
 {
   public:

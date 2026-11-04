@@ -19,6 +19,16 @@ dependencies:
       registry_url: https://components.espressif.com/
       type: service
     version: 3.0.3
+  espressif/mdns:
+    component_hash: ef0766474b37459f6ad22461e453a8713e780e831a7c993b16919d817988dff6
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.14.1
   idf:
     source:
       type: idf
@@ -36,7 +46,8 @@ dependencies:
 direct_dependencies:
 - espressif/cjson
 - espressif/led_strip
+- espressif/mdns
 - joltwallet/littlefs
-manifest_hash: 39dce0f3cd3094cc089bfe5bd77972248442605dc89933027fa0c1a7834f8dbf
+manifest_hash: a41b3829dd2e6151977f74247b1761b911d0799c755fc05f36a8e8c9343064ca
 target: esp32c6
 version: 3.0.0

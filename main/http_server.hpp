@@ -3,74 +3,63 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
-#include <expected>
+#include <list>
+#include <string>
+#include <string_view>
 
 #include "esp_err.h"
 #include "esp_http_server.h"
 
 namespace internet
 {
-    class HttpServer final {
-    private:
-        struct State;
-
+    class HttpServer final 
+    {
     public:
-        using Handler = std::function<esp_err_t(httpd_req_t*)>;
-
-        class Route final {
-        public:
-            Route() = default;
-
-            Route(const Route&) = delete;
-            Route& operator=(const Route&) = delete;
-
-            Route(Route&& other) noexcept;
-            Route& operator=(Route&& other) noexcept;
-
-            ~Route();
-
-            void reset() noexcept;
-
-            [[nodiscard]]
-            explicit operator bool() const noexcept;
-
-        private:
-            friend class HttpServer;
-
-            Route(std::weak_ptr<State> state, std::uint64_t id) noexcept;
-
-            std::weak_ptr<State> state_;
-            std::uint64_t id_{};
-        };
-
-        HttpServer();
-        explicit HttpServer(const httpd_config_t& config);
+        using Handler = std::move_only_function<esp_err_t(httpd_req_t*)>;
+        
+        HttpServer() = default;
+        ~HttpServer() noexcept;
 
         HttpServer(const HttpServer&) = delete;
         HttpServer& operator=(const HttpServer&) = delete;
 
-        HttpServer(HttpServer&&) noexcept;
-        HttpServer& operator=(HttpServer&&) noexcept;
+        HttpServer(HttpServer&& other) noexcept;
 
-        ~HttpServer();
-
-        [[nodiscard]]
-        std::expected<void, esp_err_t> start();
+        HttpServer& operator=(HttpServer&& other) = delete;
 
         [[nodiscard]]
-        std::expected<void, esp_err_t> stop() noexcept;
+        esp_err_t start(httpd_config_t config = HTTPD_DEFAULT_CONFIG()) noexcept;
 
         [[nodiscard]]
-        bool running() const noexcept;
+        esp_err_t stop() noexcept;
 
         [[nodiscard]]
-        std::expected<Route, esp_err_t> register_handler(
-            std::string uri,
-            httpd_method_t method,
-            Handler handler);
+        bool is_running() const noexcept;
 
+        [[nodiscard]]
+        esp_err_t register_handler(
+            std::string uri, 
+            httpd_method_t metod, 
+            Handler handler) noexcept;
+        
+        [[nodiscard]]
+        esp_err_t unregister_handler(
+            std::string_view uri,
+            httpd_method_t method) noexcept;
+
+        [[nodiscard]] httpd_handle_t native_handle() const noexcept;
     private:
-        std::shared_ptr<State> state_;
-        httpd_config_t config_ = HTTPD_DEFAULT_CONFIG();
+        struct Route
+        {
+            std::string uri;
+            httpd_method_t method;
+            Handler handler;
+        };
+        
+        httpd_handle_t handle_{nullptr};
+
+        std::list<Route> routes_;
+
+        static esp_err_t dispatch(httpd_req_t* req);
     };
 } // namespace internet

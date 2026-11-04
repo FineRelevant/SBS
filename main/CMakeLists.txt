@@ -9,9 +9,11 @@ idf_component_register(
     	"application.cpp"
 		"http_server.cpp"
     	"http_client.cpp"
-    	"provisioning.cpp"
+    	"configuration.cpp"
     	"filesystem.cpp"
     	"nvs.cpp"
 		"internet_config.cpp"
+		"mdns.cpp"
+		"peripherals.cpp"
     INCLUDE_DIRS "."
-    REQUIRES esp_wifi nvs_flash esp_http_server esp_http_client)
+    REQUIRES esp_wifi nvs_flash esp_http_server esp_http_client esp_netif esp_driver_gpio)

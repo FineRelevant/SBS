@@ -43,15 +43,14 @@ namespace storage
 		}
 	}
 
-	std::expected<void, esp_err_t>
-	NvsService::require_open() const
+	esp_err_t NvsService::require_open() const
 	{
 		if (!is_open())
 		{
-			return std::unexpected(ESP_ERR_INVALID_STATE);
+			return ESP_ERR_INVALID_STATE;
 		}
 
-		return {};
+		return ESP_OK;
 	}
 
 	std::expected<std::string, esp_err_t>
@@ -126,14 +125,14 @@ namespace storage
 	std::expected<std::int32_t, esp_err_t>
 	NvsService::get_i32(std::string_view key) const
 	{
-		if (auto r = require_open(); !r)
+		if (auto r = require_open(); r != ESP_OK)
 		{
-			return std::unexpected(r.error());
+			return std::unexpected(r);
 		}
 
 		auto k = validate_name(key, NVS_KEY_NAME_MAX_SIZE - 1);
 
-		if (!k)
+		if (!k.has_value())
 		{
 			return std::unexpected(k.error());
 		}
@@ -154,14 +153,14 @@ namespace storage
 	std::expected<std::uint32_t, esp_err_t>
 	NvsService::get_u32(std::string_view key) const
 	{
-		if (auto r = require_open(); !r)
+		if (auto r = require_open(); r != ESP_OK)
 		{
-			return std::unexpected(r.error());
+			return std::unexpected(r);
 		}
 
 		auto k = validate_name(key, NVS_KEY_NAME_MAX_SIZE - 1);
 
-		if (!k)
+		if (!k.has_value())
 		{
 			return std::unexpected(k.error());
 		}
@@ -182,14 +181,14 @@ namespace storage
 	std::expected<std::uint64_t, esp_err_t>
 	NvsService::get_u64(std::string_view key) const
 	{
-		if (auto r = require_open(); !r)
+		if (auto r = require_open(); r != ESP_OK)
 		{
-			return std::unexpected(r.error());
+			return std::unexpected(r);
 		}
 
 		auto k = validate_name(key, NVS_KEY_NAME_MAX_SIZE - 1);
 
-		if (!k)
+		if (!k.has_value())
 		{
 			return std::unexpected(k.error());
 		}
@@ -210,14 +209,14 @@ namespace storage
 	std::expected<bool, esp_err_t>
 	NvsService::get_bool(std::string_view key) const
 	{
-		if (auto r = require_open(); !r)
+		if (auto r = require_open(); r != ESP_OK)
 		{
-			return std::unexpected(r.error());
+			return std::unexpected(r);
 		}
 
 		auto k = validate_name(key, NVS_KEY_NAME_MAX_SIZE - 1);
 
-		if (!k)
+		if (!k.has_value())
 		{
 			return std::unexpected(k.error());
 		}
@@ -243,14 +242,14 @@ namespace storage
 	std::expected<std::string, esp_err_t>
 	NvsService::get_string(std::string_view key) const
 	{
-		if (auto r = require_open(); !r)
+		if (auto r = require_open(); r != ESP_OK)
 		{
-			return std::unexpected(r.error());
+			return std::unexpected(r);
 		}
 
 		auto k = validate_name(key, NVS_KEY_NAME_MAX_SIZE - 1);
 
-		if (!k)
+		if (!k.has_value())
 		{
 			return std::unexpected(k.error());
 		}
@@ -286,14 +285,14 @@ namespace storage
 	std::expected<std::vector<std::byte>, esp_err_t>
 	NvsService::get_blob(std::string_view key) const
 	{
-		if (auto r = require_open(); !r)
+		if (auto r = require_open(); r != ESP_OK)
 		{
-			return std::unexpected(r.error());
+			return std::unexpected(r);
 		}
 
 		auto k = validate_name(key, NVS_KEY_NAME_MAX_SIZE - 1);
 
-		if (!k)
+		if (!k.has_value())
 		{
 			return std::unexpected(k.error());
 		}
@@ -326,21 +325,21 @@ namespace storage
 		return value;
 	}
 
-	std::expected<void, esp_err_t>
+	esp_err_t
 	NvsService::set_i32(
 		std::string_view key, std::int32_t value)
 	{
 
-		if (auto r = require_open(); !r)
+		if (auto r = require_open(); r != ESP_OK)
 		{
-			return std::unexpected(r.error());
+			return r;
 		}
 
 		auto k = validate_name(key, NVS_KEY_NAME_MAX_SIZE - 1);
 
-		if (!k)
+		if (!k.has_value())
 		{
-			return std::unexpected(k.error());
+			return k.error();
 		}
 
 		const auto err = nvs_set_i32(
@@ -348,27 +347,26 @@ namespace storage
 
 		if (err != ESP_OK)
 		{
-			return std::unexpected(err);
+			return err;
 		}
 
-		return {};
+		return ESP_OK;
 	}
 
-	std::expected<void, esp_err_t>
-	NvsService::set_u32(
+	esp_err_t NvsService::set_u32(
 		std::string_view key, std::uint32_t value)
 	{
 
-		if (auto r = require_open(); !r)
+		if (auto r = require_open(); r != ESP_OK)
 		{
-			return std::unexpected(r.error());
+			return r;
 		}
 
 		auto k = validate_name(key, NVS_KEY_NAME_MAX_SIZE - 1);
 
-		if (!k)
+		if (!k.has_value())
 		{
-			return std::unexpected(k.error());
+			return k.error();
 		}
 
 		const auto err = nvs_set_u32(
@@ -376,27 +374,27 @@ namespace storage
 
 		if (err != ESP_OK)
 		{
-			return std::unexpected(err);
+			return err;
 		}
 
-		return {};
+		return ESP_OK;
 	}
 
-	std::expected<void, esp_err_t>
+	esp_err_t
 	NvsService::set_u64(
 		std::string_view key, std::uint64_t value)
 	{
 
-		if (auto r = require_open(); !r)
+		if (auto r = require_open(); r != ESP_OK)
 		{
-			return std::unexpected(r.error());
+			return r;
 		}
 
 		auto k = validate_name(key, NVS_KEY_NAME_MAX_SIZE - 1);
 
-		if (!k)
+		if (!k.has_value())
 		{
-			return std::unexpected(k.error());
+			return k.error();
 		}
 
 		const auto err = nvs_set_u64(
@@ -404,27 +402,27 @@ namespace storage
 
 		if (err != ESP_OK)
 		{
-			return std::unexpected(err);
+			return err;
 		}
 
-		return {};
+		return ESP_OK;
 	}
 
-	std::expected<void, esp_err_t>
+	esp_err_t
 	NvsService::set_bool(
 		std::string_view key, bool value)
 	{
 
-		if (auto r = require_open(); !r)
+		if (auto r = require_open(); r != ESP_OK)
 		{
-			return std::unexpected(r.error());
+			return r;
 		}
 
 		auto k = validate_name(key, NVS_KEY_NAME_MAX_SIZE - 1);
 
-		if (!k)
+		if (!k.has_value())
 		{
-			return std::unexpected(k.error());
+			return k.error();
 		}
 
 		const auto err = nvs_set_u8(
@@ -432,32 +430,32 @@ namespace storage
 
 		if (err != ESP_OK)
 		{
-			return std::unexpected(err);
+			return err;
 		}
 
-		return {};
+		return ESP_OK;
 	}
 
-	std::expected<void, esp_err_t>
+	esp_err_t
 	NvsService::set_string(
 		std::string_view key, std::string_view value)
 	{
 
-		if (auto r = require_open(); !r)
+		if (auto r = require_open(); r != ESP_OK)
 		{
-			return std::unexpected(r.error());
+			return r;
 		}
 
 		auto k = validate_name(key, NVS_KEY_NAME_MAX_SIZE - 1);
 
-		if (!k)
+		if (!k.has_value())
 		{
-			return std::unexpected(k.error());
+			return k.error();
 		}
 
 		if (value.find('\0') != std::string_view::npos)
 		{
-			return std::unexpected(ESP_ERR_INVALID_ARG);
+			return ESP_ERR_INVALID_ARG;
 		}
 
 		const std::string owned(value);
@@ -467,28 +465,28 @@ namespace storage
 
 		if (err != ESP_OK)
 		{
-			return std::unexpected(err);
+			return err;
 		}
 
-		return {};
+		return ESP_OK;
 	}
 
-	std::expected<void, esp_err_t>
+	esp_err_t
 	NvsService::set_blob(
 		std::string_view key,
 		std::span<const std::byte> value)
 	{
 
-		if (auto r = require_open(); !r)
+		if (auto r = require_open(); r != ESP_OK)
 		{
-			return std::unexpected(r.error());
+			return r;
 		}
 
 		auto k = validate_name(key, NVS_KEY_NAME_MAX_SIZE - 1);
 
-		if (!k)
+		if (!k.has_value())
 		{
-			return std::unexpected(k.error());
+			return k.error();
 		}
 
 		const auto err = nvs_set_blob(
@@ -496,25 +494,25 @@ namespace storage
 
 		if (err != ESP_OK)
 		{
-			return std::unexpected(err);
+			return err;
 		}
 
-		return {};
+		return ESP_OK;
 	}
 
-	std::expected<void, esp_err_t>
+	esp_err_t
 	NvsService::erase(std::string_view key)
 	{
-		if (auto r = require_open(); !r)
+		if (auto r = require_open(); r != ESP_OK)
 		{
-			return std::unexpected(r.error());
+			return r;
 		}
 
 		auto k = validate_name(key, NVS_KEY_NAME_MAX_SIZE - 1);
 
-		if (!k)
+		if (!k.has_value())
 		{
-			return std::unexpected(k.error());
+			return k.error();
 		}
 
 		const auto err = nvs_erase_key(
@@ -522,46 +520,46 @@ namespace storage
 
 		if (err != ESP_OK)
 		{
-			return std::unexpected(err);
+			return err;
 		}
 
-		return {};
+		return ESP_OK;
 	}
 
-	std::expected<void, esp_err_t>
+	esp_err_t
 	NvsService::erase_all()
 	{
-		if (auto r = require_open(); !r)
+		if (auto r = require_open(); r != ESP_OK)
 		{
-			return std::unexpected(r.error());
+			return r;
 		}
 
 		const auto err = nvs_erase_all(handle_);
 
 		if (err != ESP_OK)
 		{
-			return std::unexpected(err);
+			return err;
 		}
 
-		return {};
+		return ESP_OK;
 	}
 
-	std::expected<void, esp_err_t>
+	esp_err_t
 	NvsService::commit()
 	{
-		if (auto r = require_open(); !r)
+		if (auto r = require_open(); r != ESP_OK)
 		{
-			return std::unexpected(r.error());
+			return r;
 		}
 
 		const auto err = nvs_commit(handle_);
 
 		if (err != ESP_OK)
 		{
-			return std::unexpected(err);
+			return err;
 		}
 
-		return {};
+		return ESP_OK;
 	}
 
 } // namespace storage

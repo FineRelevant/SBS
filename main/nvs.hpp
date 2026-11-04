@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include <cstddef>
@@ -18,7 +17,7 @@ namespace storage
 	public:
 		enum class Access
 		{
-			ReadOnly,
+			ReadOnly = 0,
 			ReadWrite
 		};
 
@@ -68,40 +67,31 @@ namespace storage
 		get_blob(std::string_view key) const;
 
 		[[nodiscard]]
-		std::expected<void, esp_err_t>
-		set_i32(std::string_view key, std::int32_t value);
+		esp_err_t set_i32(std::string_view key, std::int32_t value);
 
 		[[nodiscard]]
-		std::expected<void, esp_err_t>
-		set_u32(std::string_view key, std::uint32_t value);
+		esp_err_t set_u32(std::string_view key, std::uint32_t value);
 
 		[[nodiscard]]
-		std::expected<void, esp_err_t>
-		set_u64(std::string_view key, std::uint64_t value);
+		esp_err_t set_u64(std::string_view key, std::uint64_t value);
 
 		[[nodiscard]]
-		std::expected<void, esp_err_t>
-		set_bool(std::string_view key, bool value);
+		esp_err_t set_bool(std::string_view key, bool value);
 
 		[[nodiscard]]
-		std::expected<void, esp_err_t>
-		set_string(std::string_view key, std::string_view value);
+		esp_err_t set_string(std::string_view key, std::string_view value);
 
 		[[nodiscard]]
-		std::expected<void, esp_err_t>
-		set_blob(
-			std::string_view key,
-			std::span<const std::byte> value);
+		esp_err_t set_blob(std::string_view key, std::span<const std::byte> value);
 
 		[[nodiscard]]
-		std::expected<void, esp_err_t>
-		erase(std::string_view key);
+		esp_err_t erase(std::string_view key);
 
 		[[nodiscard]]
-		std::expected<void, esp_err_t> erase_all();
+		esp_err_t erase_all();
 
 		[[nodiscard]]
-		std::expected<void, esp_err_t> commit();
+		esp_err_t commit();
 
 	private:
 		explicit NvsService(nvs_handle_t handle) noexcept;
@@ -113,7 +103,7 @@ namespace storage
 			std::size_t max_length);
 
 		[[nodiscard]]
-		std::expected<void, esp_err_t> require_open() const;
+		esp_err_t require_open() const;
 
 		nvs_handle_t handle_ {};
 	};

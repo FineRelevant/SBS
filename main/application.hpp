@@ -1,77 +1,49 @@
 #pragma once
 
 #include "events.hpp"
+#include "filesystem.hpp"
+#include "scheduler.hpp"
 #include "task.hpp"
 #include "wifi.hpp"
+#include "configuration.hpp"
+#include "peripherals.hpp"
 
 #include "esp_wifi.h"
 #include "nvs_flash.h"
 
 class Application
 {
-  public:
+public:
 	Application();
 
 	Application(const Application &) = delete;
-	Application &operator=(const Application &) = delete;
+	Application& operator=(const Application &) = delete;
+	Application(const Application&&) = delete;
+	Application& operator=(const Application&&) = delete;
 
-	void initialize();
 	void start();
 	void stop();
 
-  private:
+private:
+	
 	// Event System
-	event::EventQueue _event_queue;
-	event::EventDispatcher _event_dispatcher;
-	StaticTask<event::EventDispatcher> _event_dispatcher_task;
+	event::EventQueue event_queue_;
+	event::EventDispatcher event_dispatcher_;
+	StaticTask<event::EventDispatcher> event_dispatcher_task_;
 
-	// WiFi
-	// internet::InternetConfig _internet_config;
-	// internet::WifiService _wifi_service;
+	storage::FilesystemService filesystem_service_;
 
-	[[nodiscard]]
-	esp_err_t initialize_networking()
-	{
-		esp_err_t result = esp_netif_init();
+	scheduler::SntpClient sntp_client_;
+	scheduler::BellScheduler scheduler_;
 
-		if (result != ESP_OK &&
-			result != ESP_ERR_INVALID_STATE)
-		{
-			return result;
-		}
+	internet::WifiService wifi_service_;
+	internet::ConfigurationService configuration_service_;
 
-		result = esp_event_loop_create_default();
+	HardwareController hardware_controller_;
 
-		if (result != ESP_OK &&
-			result != ESP_ERR_INVALID_STATE)
-		{
-			return result;
-		}
+	void initialize_global();
 
-		const wifi_init_config_t wifi_config =
-			WIFI_INIT_CONFIG_DEFAULT();
+	void shutdown();
 
-		return esp_wifi_init(&wifi_config);
-	}
-
-	void shutdown_networking()
-	{
-		esp_wifi_deinit();
-		esp_event_loop_delete_default();
-		esp_netif_deinit();
-	}
-
-	esp_err_t initialize_nvs()
-	{
-		esp_err_t err = nvs_flash_init();
-
-		if (err == ESP_ERR_NVS_NO_FREE_PAGES ||
-			err == ESP_ERR_NVS_NEW_VERSION_FOUND)
-		{
-			ESP_ERROR_CHECK(nvs_flash_erase());
-			err = nvs_flash_init();
-		}
-
-		return err;
-	}
+	void publish_application_state_changed(event::ApplicationState state);
 };

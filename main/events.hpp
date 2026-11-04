@@ -10,17 +10,39 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 
+namespace internet
+{
+	enum class ConnectivityStatus : uint8_t;
+}
+
 namespace event
 {
-	enum class Source
+	enum class Source : std::uint8_t
 	{
-		Scheduler = 0,
+		Application = 0,
+		Scheduler,
 		Test,
 		Network
 	};
 
+	enum class ApplicationState : std::uint8_t
+	{
+		Running = 0,
+		Synchronization,
+		Configuration,
+	};
+
 	using IPv4Address = std::uint32_t;
 	using MacAddress = std::array<std::uint8_t, 6>;
+
+	// -------------------------------------------------------------------------
+	// Application
+	// -------------------------------------------------------------------------
+
+	struct ApplicationStateChanged
+	{
+		ApplicationState state;
+	};
 
 	// -------------------------------------------------------------------------
 	// Event data
@@ -73,6 +95,11 @@ namespace event
 	{
 	};
 
+	struct WifiReconnectThresholdReached
+	{
+		std::uint32_t consecutive_failures;
+	};
+
 	// Wi-Fi access point
 
 	struct WifiApStarted
@@ -95,21 +122,29 @@ namespace event
 		MacAddress mac;
 	};
 
-	struct WifiProvisioningStarted
+	struct WifiConfigurationStarted
 	{
 	};
 
-	struct WifiProvisioningStopped
+	struct WifiConfigurationStopped
 	{
 	};
 
-	struct WifiProvisioningCompleted
+	struct WifiConfigurationCompleted
 	{
+		internet::ConnectivityStatus status;
 	};
 
-	struct WifiProvisioningFailed
+	struct WifiConfigurationFailed
 	{
 		std::int32_t error;
+	};
+
+	struct SntpTimeSynced
+	{
+		// timeval fields – keep them plain so the variant stays trivial / POD-friendly
+		std::int64_t tv_sec{};
+		std::int32_t tv_usec{};
 	};
 
 	// -------------------------------------------------------------------------
@@ -117,6 +152,8 @@ namespace event
 	// -------------------------------------------------------------------------
 
 	using Data = std::variant<
+		ApplicationStateChanged,
+		
 		BellDue,
 		Test,
 		ScheduleChanged,
@@ -127,16 +164,19 @@ namespace event
 		WifiStationDisconnected,
 		WifiStationGotIp,
 		WifiStationLostIp,
+		WifiReconnectThresholdReached,
 
 		WifiApStarted,
 		WifiApStopped,
 		WifiApClientConnected,
 		WifiApClientDisconnected,
 
-		WifiProvisioningStarted,
-		WifiProvisioningStopped,
-		WifiProvisioningCompleted,
-		WifiProvisioningFailed>;
+		WifiConfigurationStarted,
+		WifiConfigurationStopped,
+		WifiConfigurationCompleted,
+		WifiConfigurationFailed,
+		
+		SntpTimeSynced>;
 
 	struct Metadata
 	{
@@ -186,12 +226,12 @@ namespace event
 			TickType_t timeout = portMAX_DELAY);
 
 	  private:
-		QueueHandle_t _queue{nullptr};
+		QueueHandle_t queue_{nullptr};
 
-		StaticQueue_t _control_block{};
+		StaticQueue_t control_block_{};
 
 		alignas(Event)
-			std::array<Event, queue_length> _storage{};
+			std::array<Event, queue_length> storage_{};
 	};
 
 	class EventDispatcher
@@ -218,12 +258,12 @@ namespace event
 				void *context)
 			{
 				if (callback == nullptr ||
-					_count >= max_handlers_per_type)
+					count_ >= max_handlers_per_type)
 				{
 					return false;
 				}
 
-				_handlers[_count++] = {
+				handlers_[count_++] = {
 					.callback = callback,
 					.context = context};
 
@@ -234,9 +274,9 @@ namespace event
 				const Event &event,
 				const T &data) const
 			{
-				for (std::size_t i = 0; i < _count; ++i)
+				for (std::size_t i = 0; i < count_; ++i)
 				{
-					const auto &handler = _handlers[i];
+					const auto &handler = handlers_[i];
 
 					handler.callback(
 						event,
@@ -246,8 +286,8 @@ namespace event
 			}
 
 		  private:
-			std::array<Handler, max_handlers_per_type> _handlers{};
-			std::size_t _count{0};
+			std::array<Handler, max_handlers_per_type> handlers_{};
+			std::size_t count_{0};
 		};
 
 		template <typename Variant>
@@ -263,7 +303,7 @@ namespace event
 
 	  public:
 		explicit EventDispatcher(EventQueue &queue)
-			: _queue(queue)
+			: queue_(queue)
 		{
 		}
 
@@ -276,7 +316,7 @@ namespace event
 			void *context = nullptr)
 		{
 			return std::get<HandlerList<T>>(
-					   _handler_lists)
+					   handler_lists_)
 				.add_handler(callback, context);
 		}
 
@@ -288,11 +328,11 @@ namespace event
 			Event event{
 				.metadata = {
 					.source = source,
-					.sequence_id = _next_sequence_id++,
+					.sequence_id = next_sequence_id_++,
 					.timestamp = xTaskGetTickCount()},
 				.data = std::move(data)};
 
-			return _queue.publish(event);
+			return queue_.publish(event);
 		}
 
 		template <DataType T>
@@ -304,11 +344,11 @@ namespace event
 			Event event{
 				.metadata = {
 					.source = source,
-					.sequence_id = _next_sequence_id++,
+					.sequence_id = next_sequence_id_++,
 					.timestamp = xTaskGetTickCountFromISR()},
 				.data = std::move(data)};
 
-			return _queue.publish_from_isr(
+			return queue_.publish_from_isr(
 				event,
 				higher_task_priority_woken);
 		}
@@ -319,8 +359,8 @@ namespace event
 		void dispatch(const Event &event);
 
 	  private:
-		EventQueue &_queue;
-		HandlerLists_t _handler_lists{};
-		std::uint32_t _next_sequence_id{0};
+		EventQueue &queue_;
+		HandlerLists_t handler_lists_{};
+		std::uint32_t next_sequence_id_{0};
 	};
 } // namespace event

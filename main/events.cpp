@@ -9,22 +9,22 @@ namespace event
 
 	EventQueue::EventQueue()
 	{
-		_queue = xQueueCreateStatic(queue_length, sizeof(Event), reinterpret_cast<uint8_t*>(_storage.data()), &_control_block);
+		queue_ = xQueueCreateStatic(queue_length, sizeof(Event), reinterpret_cast<uint8_t*>(storage_.data()), &control_block_);
 	}
 
 
 	bool EventQueue::publish(const Event& event)
 	{
-		if (_queue == nullptr)
+		if (queue_ == nullptr)
 			return false;
 
-		return xQueueSend(_queue, &event, portMAX_DELAY) == pdTRUE;
+		return xQueueSend(queue_, &event, portMAX_DELAY) == pdTRUE;
 	}
 
 
 	bool EventQueue::publish_from_isr(const Event& event, BaseType_t* higher_task_priority_woken)
 	{
-		if (_queue == nullptr)
+		if (queue_ == nullptr)
 			return false;
 
 		BaseType_t local_woken = pdFALSE;
@@ -34,16 +34,18 @@ namespace event
 			higher_task_priority_woken = &local_woken;
 		}
 
-		return xQueueSendFromISR(_queue, &event, higher_task_priority_woken) == pdTRUE;
+		return xQueueSendFromISR(queue_, &event, higher_task_priority_woken) == pdTRUE;
 	}
 
 
 	bool EventQueue::receive(Event& event, TickType_t timeout)
 	{
-		if (_queue == nullptr)
+		if (queue_ == nullptr)
+		{
 			return false;
+		}
 
-		return xQueueReceive(_queue, &event, timeout) == pdTRUE;
+		return xQueueReceive(queue_, &event, timeout) == pdTRUE;
 	}
 
 
@@ -57,7 +59,7 @@ namespace event
 
 		while (true)
 		{
-			if (_queue.receive(event))
+			if (queue_.receive(event))
 			{
 				dispatch(event);
 			}
@@ -72,7 +74,7 @@ namespace event
 			{
 				using DataType = std::decay_t<decltype(data)>;
 
-				auto& handlers = std::get<HandlerList<DataType>>(_handler_lists);
+				auto& handlers = std::get<HandlerList<DataType>>(handler_lists_);
 
 				handlers.invoke(event, data);
 			}, event.data);
