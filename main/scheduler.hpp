@@ -74,20 +74,20 @@ namespace scheduler
     public:
         struct Config
         {
-            bool        smooth_sync                = true;
-            bool        server_from_dhcp           = true;
-            bool        wait_for_sync              = true;
-            bool        start                      = false;
-            bool        renew_servers_after_new_ip = false;
-            ip_event_t  ip_event_to_renew          = IP_EVENT_STA_GOT_IP;
-            std::size_t index_of_first_server      = 0;
+            bool smooth_sync = true;
+            bool server_from_dhcp = true;
+            bool wait_for_sync = true;
+            bool start = false;
+            bool renew_servers_after_new_ip = false;
+            ip_event_t  ip_event_to_renew = IP_EVENT_STA_GOT_IP;
+            std::size_t index_of_first_server = 0;
 
             std::array<const char*, CONFIG_LWIP_SNTP_MAX_SERVERS> servers{"pool.ntp.org"};
-            std::size_t                                           num_servers = 1;
+            std::size_t num_servers = 1;
 
             // Factories
             [[nodiscard]] static Config single(std::string_view server,
-                                            bool start_immediately = true) noexcept;
+                bool start_immediately = true) noexcept;
 
             [[nodiscard]] static Config from_dhcp(bool start_immediately = false) noexcept;
 
@@ -137,13 +137,13 @@ namespace scheduler
         reachability(unsigned index) const noexcept;
 
         [[nodiscard]] bool is_initialised() const noexcept { return initialised_; }
-        [[nodiscard]] bool is_started()    const noexcept { return started_; }
+        [[nodiscard]] bool is_started() const noexcept { return started_; }
 
     private:
         static void sntp_event_handler(void* arg,
-                                    esp_event_base_t base,
-                                    std::int32_t id,
-                                    void* event_data);
+            esp_event_base_t base,
+            std::int32_t id,
+            void* event_data);
 
         event::EventDispatcher& dispatcher_;
         esp_event_handler_instance_t handler_instance_{nullptr};
@@ -157,21 +157,21 @@ namespace scheduler
     class BellScheduler final
     {
     public:
-        static constexpr std::size_t      max_events       = 128;
-        static constexpr std::string_view schedules_path   = "schedules.json";
+        static constexpr std::size_t max_events = 128;
+        static constexpr std::string_view schedules_path = "schedules.json";
 
         struct Config
         {
             std::chrono::hours planning_horizon = std::chrono::hours(36);
-            std::uint32_t      task_stack_size{4096};
-            UBaseType_t        task_priority{5};
+            std::uint32_t task_stack_size{4096};
+            UBaseType_t task_priority{5};
         };
 
         explicit BellScheduler(storage::FilesystemService& fs,
-                            event::EventDispatcher&     dispatcher,
-                            Config                      cfg) noexcept;
+                            event::EventDispatcher& dispatcher,
+                            Config cfg) noexcept;
 
-        BellScheduler(const BellScheduler&)            = delete;
+        BellScheduler(const BellScheduler&) = delete;
         BellScheduler& operator=(const BellScheduler&) = delete;
 
         ~BellScheduler();
@@ -193,48 +193,48 @@ namespace scheduler
         // Internal representation of a future ringing instant
         struct PlannedEvent
         {
-            std::time_t   when{};       // absolute UTC seconds
+            std::time_t when{};       // absolute UTC seconds
             std::uint32_t period_id{};  // for logging / diagnostics only
         };
 
         // FreeRTOS worker
         static void worker_entry(void* arg);
-        void        worker_loop();
+        void worker_loop();
 
         // Core algorithm
         [[nodiscard]] esp_err_t load_and_parse() noexcept;
-        void                    apply_timezone(std::string_view tz) noexcept;
+        void apply_timezone(std::string_view tz) noexcept;
 
         [[nodiscard]] std::vector<PlannedEvent>
-        build_events(const BellSchedule&          schedule,
-                    const BellRuntimeSettings&   settings,
-                    std::time_t                  now) const noexcept;
+        build_events(const BellSchedule& schedule,
+            const BellRuntimeSettings& settings,
+            std::time_t now) const noexcept;
 
         void dispatch(const PlannedEvent& ev) noexcept;
 
         // Helpers
         static std::time_t local_minutes_to_time_t(std::chrono::minutes tod,
-                                                const std::tm&       base_local,
-                                                int                  day_offset) noexcept;
+            const std::tm& base_local,
+            int day_offset) noexcept;
 
         static std::chrono::minutes clamp_tod(std::chrono::minutes m) noexcept;
 
         // Members
         storage::FilesystemService& fs_;
-        event::EventDispatcher&     dispatcher_;
-        Config                      cfg_;
+        event::EventDispatcher& dispatcher_;
+        Config cfg_;
 
         std::atomic<bool> running_{false};
         std::atomic<bool> recalculate_requested_{false};
 
-        TaskHandle_t      task_{nullptr};
+        TaskHandle_t task_{nullptr};
         SemaphoreHandle_t wake_sem_{nullptr};
 
         std::array<PlannedEvent, max_events> plan_{};
-        std::size_t                          plan_count_{0};
-        std::size_t                          next_index_{0};
+        std::size_t plan_count_{0};
+        std::size_t next_index_{0};
 
         BellRuntimeSettings settings_{};
-        BellSchedule        schedule_{};
+        BellSchedule schedule_{};
     };
 } // namespace scheduler

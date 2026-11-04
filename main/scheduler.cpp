@@ -410,9 +410,9 @@ namespace scheduler
     SntpClient::Config SntpClient::Config::single(std::string_view server, bool start_immediately) noexcept
     {
         SntpClient::Config c;
-        c.servers[0]  = server.data();
+        c.servers[0] = server.data();
         c.num_servers = 1;
-        c.start       = start_immediately;
+        c.start = start_immediately;
         return c;
     }
 
@@ -420,7 +420,7 @@ namespace scheduler
     {
         SntpClient::Config c;
         c.server_from_dhcp = true;
-        c.start            = start_immediately;
+        c.start = start_immediately;
         return c;
     }
 
@@ -445,23 +445,23 @@ namespace scheduler
     SntpClient::Config& SntpClient::Config::renew_on(ip_event_t evt, std::size_t first_idx) noexcept
     {
         renew_servers_after_new_ip = true;
-        ip_event_to_renew          = evt;
-        index_of_first_server      = first_idx;
+        ip_event_to_renew = evt;
+        index_of_first_server = first_idx;
         return *this;
     }
 
     esp_sntp_config_t SntpClient::Config::to_c() const noexcept
     {
         esp_sntp_config_t c{};
-        c.smooth_sync                = smooth_sync;
-        c.server_from_dhcp           = server_from_dhcp;
-        c.wait_for_sync              = wait_for_sync;
-        c.start                      = start;
-        c.sync_cb                    = nullptr;          // we use the event bridge
+        c.smooth_sync = smooth_sync;
+        c.server_from_dhcp = server_from_dhcp;
+        c.wait_for_sync = wait_for_sync;
+        c.start = start;
+        c.sync_cb = nullptr;          // we use the event bridge
         c.renew_servers_after_new_IP = renew_servers_after_new_ip;
-        c.ip_event_to_renew          = ip_event_to_renew;
-        c.index_of_first_server      = index_of_first_server;
-        c.num_of_servers             = num_servers;
+        c.ip_event_to_renew = ip_event_to_renew;
+        c.index_of_first_server = index_of_first_server;
+        c.num_of_servers = num_servers;
 
         for (std::size_t i = 0; i < num_servers; ++i)
             c.servers[i] = servers[i];
@@ -572,9 +572,9 @@ namespace scheduler
     }
 
     void SntpClient::sntp_event_handler(void* arg,
-                                        esp_event_base_t /*base*/,
-                                        std::int32_t /*id*/,
-                                        void* event_data)
+        esp_event_base_t /*base*/,
+        std::int32_t /*id*/,
+        void* event_data)
     {
         auto* self = static_cast<SntpClient*>(arg);
         if (!self)
@@ -726,7 +726,7 @@ namespace scheduler
                 if (const esp_err_t err = load_and_parse(); err != ESP_OK)
                 {
                     ESP_LOGE(k_tag, "Recalculate failed: %s",
-                            esp_err_to_name(err));
+                        esp_err_to_name(err));
                     continue;
                 }
             }
@@ -797,8 +797,8 @@ namespace scheduler
         if (!text)
         {
             ESP_LOGE(k_tag, "Cannot read %s: %s",
-                    schedules_path.data(),
-                    esp_err_to_name(text.error()));
+                schedules_path.data(),
+                esp_err_to_name(text.error()));
             return text.error();
         }
 
@@ -806,7 +806,7 @@ namespace scheduler
         if (!settings)
         {
             ESP_LOGE(k_tag, "parse_settings failed: %s",
-                    esp_err_to_name(settings.error()));
+                esp_err_to_name(settings.error()));
             return settings.error();
         }
 
@@ -815,8 +815,8 @@ namespace scheduler
         if (!schedule)
         {
             ESP_LOGE(k_tag, "parse_schedule(\"%s\") failed: %s",
-                    settings->active_schedule_id.c_str(),
-                    esp_err_to_name(schedule.error()));
+                settings->active_schedule_id.c_str(),
+                esp_err_to_name(schedule.error()));
             return schedule.error();
         }
 
@@ -854,9 +854,9 @@ namespace scheduler
         dispatcher_.publish(event::Source::Scheduler, event::ScheduleChanged{});
 
         ESP_LOGI(k_tag, "Loaded schedule \"%s\" (%zu periods) → %zu unique BellDue events",
-                schedule_.id.c_str(),
-                schedule_.period_count,
-                plan_count_);
+            schedule_.id.c_str(),
+            schedule_.period_count,
+            plan_count_);
         
         {
             timeval tv{};
@@ -865,10 +865,10 @@ namespace scheduler
             for (std::size_t i = 0; i < plan_count_ && i < 8; ++i) 
             {
                 ESP_LOGI(k_tag, "  [%zu] when=%lld  period=%u  (in %lld s)",
-                        i,
-                        (long long)plan_[i].when,
-                        plan_[i].period_id,
-                        (long long)(plan_[i].when - tv.tv_sec));
+                    i,
+                    (long long)plan_[i].when,
+                    plan_[i].period_id,
+                    (long long)(plan_[i].when - tv.tv_sec));
             }
         }
 
@@ -880,24 +880,24 @@ namespace scheduler
         if (tz.find('/') != std::string_view::npos)
         {
             ESP_LOGW(k_tag,
-                    "Timezone \"%.*s\" looks like an IANA name; "
-                    "ESP-IDF prefers POSIX form (e.g. GMT0BST,M3.5.0/1,M10.5.0)",
-                    static_cast<int>(tz.size()), tz.data());
+                "Timezone \"%.*s\" looks like an IANA name; "
+                "ESP-IDF prefers POSIX form (e.g. GMT0BST,M3.5.0/1,M10.5.0)",
+                static_cast<int>(tz.size()), tz.data());
         }
 
         setenv("TZ", std::string(tz).c_str(), 1);
         tzset();
         ESP_LOGI(k_tag, "Timezone set to \"%.*s\"",
-                static_cast<int>(tz.size()), tz.data());
+            static_cast<int>(tz.size()), tz.data());
     }
 
     // ---------------------------------------------------------------------------
     // Core planning algorithm (overnight-aware, ≤ 128 events)
     // ---------------------------------------------------------------------------
     std::vector<BellScheduler::PlannedEvent>
-    BellScheduler::build_events(const BellSchedule&        schedule,
-                                const BellRuntimeSettings& settings,
-                                std::time_t                now) const noexcept
+    BellScheduler::build_events(const BellSchedule& schedule, 
+        const BellRuntimeSettings& settings,
+        std::time_t now) const noexcept
     {
         std::vector<PlannedEvent> result;
         result.reserve(schedule.period_count * 3 * 2); // worst-case today+tomorrow
@@ -962,9 +962,7 @@ namespace scheduler
 
         // Discard anything beyond the configured horizon
         const std::time_t horizon =
-            now + std::chrono::duration_cast<std::chrono::seconds>(
-                    cfg_.planning_horizon)
-                    .count();
+            now + std::chrono::duration_cast<std::chrono::seconds>(cfg_.planning_horizon).count();
 
         std::erase_if(result,
                     [horizon](const PlannedEvent& e) { return e.when > horizon; });
@@ -1031,16 +1029,16 @@ namespace scheduler
         if (!ok)
         {
             ESP_LOGE(k_tag, "Failed to publish BellDue (period %u)",
-                    ev.period_id);
+                ev.period_id);
         }
         else
         {
             ESP_LOGI(k_tag,
-                    "BellDue period=%u scheduled=%lld actual=%lld lateness=%lld us",
-                    ev.period_id,
-                    static_cast<long long>(ev.when),
-                    static_cast<long long>(tv.tv_sec),
-                    static_cast<long long>(lateness_us));
+                "BellDue period=%u scheduled=%lld actual=%lld lateness=%lld us",
+                ev.period_id,
+                static_cast<long long>(ev.when),
+                static_cast<long long>(tv.tv_sec),
+                static_cast<long long>(lateness_us));
         }
     }
 } // namespace scheduler
