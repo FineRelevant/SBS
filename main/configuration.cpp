@@ -734,9 +734,7 @@ namespace internet
 
         descInput.value = sched.description || '';
 
-        const periods = sched.periods
-          .slice()
-          .sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+        const periods = sched.periods;
 
         periods.forEach((p, idx) => {
           const row = document.createElement('div');
