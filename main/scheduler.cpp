@@ -469,10 +469,6 @@ namespace scheduler
         return c;
     }
 
-    // ---------------------------------------------------------------------------
-    // SntpClient
-    // ---------------------------------------------------------------------------
-
     SntpClient::SntpClient(event::EventDispatcher& dispatcher) noexcept
         : dispatcher_(dispatcher)
     {
@@ -598,16 +594,12 @@ namespace scheduler
         self->dispatcher_.publish(event::Source::Network, std::move(payload));
     }
 
-
-    // ---------------------------------------------------------------------------
-    // BellScheduler – construction / destruction
-    // ---------------------------------------------------------------------------
     BellScheduler::BellScheduler(storage::FilesystemService& fs,
-                                event::EventDispatcher&     dispatcher,
-                                Config                      cfg) noexcept
-        : fs_(fs)
-        , dispatcher_(dispatcher)
-        , cfg_(std::move(cfg))
+        event::EventDispatcher& dispatcher,
+        Config cfg) noexcept
+        : fs_(fs),
+        dispatcher_(dispatcher),
+        cfg_(std::move(cfg))
     {
         wake_sem_ = xSemaphoreCreateBinary();
         if (!wake_sem_)
@@ -626,9 +618,6 @@ namespace scheduler
         }
     }
 
-    // ---------------------------------------------------------------------------
-    // Public API
-    // ---------------------------------------------------------------------------
     esp_err_t BellScheduler::start() noexcept
     {
         if (running_.load(std::memory_order_acquire))
@@ -646,8 +635,7 @@ namespace scheduler
         // Must be set before xTaskCreate().
         running_.store(true, std::memory_order_release);
 
-        const BaseType_t rc = xTaskCreate(
-            worker_entry,
+        const BaseType_t rc = xTaskCreate(worker_entry,
             "bell_sched",
             cfg_.task_stack_size,
             this,
@@ -703,9 +691,6 @@ namespace scheduler
         return ESP_OK;
     }
 
-    // ---------------------------------------------------------------------------
-    // Worker task
-    // ---------------------------------------------------------------------------
     void BellScheduler::worker_entry(void* arg)
     {
         static_cast<BellScheduler*>(arg)->worker_loop();
@@ -718,32 +703,22 @@ namespace scheduler
 
         while (running_.load(std::memory_order_acquire))
         {
-            if (recalculate_requested_.exchange(
-                    false, std::memory_order_acq_rel))
+            if (recalculate_requested_.exchange(false, std::memory_order_acq_rel))
             {
                 ESP_LOGI(k_tag, "Executing schedule calculation");
 
                 if (const esp_err_t err = load_and_parse(); err != ESP_OK)
                 {
-                    ESP_LOGE(k_tag, "Recalculate failed: %s",
-                        esp_err_to_name(err));
+                    ESP_LOGE(k_tag, "Recalculate failed: %s", esp_err_to_name(err));
                     continue;
                 }
             }
 
-            timeval tv{};
+            // Dispatch all events whose scheduled time has arrived.
+            const TimePoint now = Clock::now();
 
-            // Dispatch all events whose scheduled second has arrived.
-            for (;;)
+            while (next_index_ < plan_count_ && plan_[next_index_].when <= now)
             {
-                gettimeofday(&tv, nullptr);
-
-                if (next_index_ >= plan_count_ ||
-                    plan_[next_index_].when > tv.tv_sec)
-                {
-                    break;
-                }
-
                 dispatch(plan_[next_index_]);
                 ++next_index_;
             }
@@ -752,33 +727,25 @@ namespace scheduler
 
             if (next_index_ < plan_count_)
             {
-                gettimeofday(&tv, nullptr);
+                const auto remaining = plan_[next_index_].when - Clock::now();
 
-                const std::int64_t now_us =
-                    static_cast<std::int64_t>(tv.tv_sec) * 1'000'000LL +
-                    tv.tv_usec;
-
-                const std::int64_t target_us =
-                    static_cast<std::int64_t>(
-                        plan_[next_index_].when) * 1'000'000LL;
-
-                const std::int64_t remaining_us = target_us - now_us;
-
-                if (remaining_us <= 0)
+                if (remaining <= std::chrono::seconds{0})
                 {
                     timeout = 0;
                 }
                 else
                 {
-                    // Round up so that the task does not intentionally
-                    // wake before the scheduled time.
+                    // Convert to FreeRTOS ticks, rounding up so we never wake early.
+                    const auto remaining_us =
+                        std::chrono::duration_cast<std::chrono::microseconds>(remaining).count();
+
                     const std::uint64_t ticks =
-                        (static_cast<std::uint64_t>(remaining_us) *
-                        configTICK_RATE_HZ + 999'999ULL) / 1'000'000ULL;
+                        (static_cast<std::uint64_t>(remaining_us) * configTICK_RATE_HZ +
+                        999'999ULL) /
+                        1'000'000ULL;
 
                     timeout = static_cast<TickType_t>(
-                        std::clamp<std::uint64_t>(
-                            ticks, 1, portMAX_DELAY - 1));
+                        std::clamp<std::uint64_t>(ticks, 1, portMAX_DELAY - 1));
                 }
             }
 
@@ -788,9 +755,6 @@ namespace scheduler
         ESP_LOGI(k_tag, "Worker stopped");
     }
 
-    // ---------------------------------------------------------------------------
-    // Load + parse + plan
-    // ---------------------------------------------------------------------------
     esp_err_t BellScheduler::load_and_parse() noexcept
     {
         auto text = fs_.read_text(schedules_path);
@@ -825,7 +789,7 @@ namespace scheduler
 
         apply_timezone(settings_.timezone);
 
-        const std::time_t now = std::time(nullptr);
+        const TimePoint now = Clock::now();
         auto events = build_events(schedule_, settings_, now);
 
         // Sort and coalesce identical timestamps
@@ -850,25 +814,30 @@ namespace scheduler
             plan_[plan_count_++] = e;
         }
 
-        // Notify the rest of the system
         dispatcher_.publish(event::Source::Scheduler, event::ScheduleChanged{});
 
-        ESP_LOGI(k_tag, "Loaded schedule \"%s\" (%zu periods) → %zu unique BellDue events",
+        ESP_LOGI(k_tag,
+            "Loaded schedule \"%s\" (%zu periods) → %zu unique BellDue events",
             schedule_.id.c_str(),
             schedule_.period_count,
             plan_count_);
-        
+
         {
-            timeval tv{};
-            gettimeofday(&tv, nullptr);
-            ESP_LOGI(k_tag, "now=%lld  plan_count=%zu", (long long)tv.tv_sec, plan_count_);
-            for (std::size_t i = 0; i < plan_count_ && i < 8; ++i) 
+            const auto now_sec = Clock::to_time_t(now);
+            ESP_LOGI(k_tag, "now=%lld  plan_count=%zu",
+                    static_cast<long long>(now_sec), plan_count_);
+
+            for (std::size_t i = 0; i < plan_count_; ++i)
             {
+                const auto when_sec = Clock::to_time_t(plan_[i].when);
+                const auto delta = plan_[i].when - now;
+
                 ESP_LOGI(k_tag, "  [%zu] when=%lld  period=%u  (in %lld s)",
                     i,
-                    (long long)plan_[i].when,
+                    static_cast<long long>(when_sec),
                     plan_[i].period_id,
-                    (long long)(plan_[i].when - tv.tv_sec));
+                    static_cast<long long>(
+                        std::chrono::duration_cast<std::chrono::seconds>(delta).count()));
             }
         }
 
@@ -892,22 +861,23 @@ namespace scheduler
     }
 
     // ---------------------------------------------------------------------------
-    // Core planning algorithm (overnight-aware, ≤ 128 events)
+    // Core planning algorithm
     // ---------------------------------------------------------------------------
     std::vector<BellScheduler::PlannedEvent>
-    BellScheduler::build_events(const BellSchedule& schedule, 
+    BellScheduler::build_events(const BellSchedule& schedule,
         const BellRuntimeSettings& settings,
-        std::time_t now) const noexcept
+        TimePoint now) const noexcept
     {
         std::vector<PlannedEvent> result;
         result.reserve(schedule.period_count * 3 * 2); // worst-case today+tomorrow
 
+        const std::time_t now_tt = Clock::to_time_t(now);
         std::tm local{};
-        localtime_r(&now, &local);
+        localtime_r(&now_tt, &local);
 
-        const auto lead_ms   = settings.warning_lead_time;
+        const auto lead_ms = settings.warning_lead_time;
         const bool has_warning = lead_ms.count() > 0;
-        const auto lead_sec  = std::chrono::duration_cast<std::chrono::seconds>(lead_ms);
+        const auto lead_sec = std::chrono::duration_cast<std::chrono::seconds>(lead_ms);
 
         // Generate for “today” and “tomorrow” relative to the local calendar day.
         // This covers any overnight period and the configured planning horizon.
@@ -915,42 +885,41 @@ namespace scheduler
         {
             for (std::size_t i = 0; i < schedule.period_count; ++i)
             {
-                const auto& p         = schedule.periods[i];
-                const auto  start_tod = clamp_tod(p.start);
-                const auto  end_tod   = clamp_tod(p.end);
+                const auto& p = schedule.periods[i];
+                const auto start_tod = clamp_tod(p.start);
+                const auto end_tod = clamp_tod(p.end);
 
-                // ----- START ---------------------------------------------------
+                // Start
                 {
-                    const std::time_t t =
-                        local_minutes_to_time_t(start_tod, local, day_offset);
+                    const TimePoint t =
+                        local_minutes_to_time_point(start_tod, local, day_offset);
                     if (t > now)
                     {
                         result.push_back({t, p.id});
                     }
                 }
 
-                // ----- FINISH (may fall on the following calendar day) ---------
+                // Finish
                 {
                     const int finish_day =
                         day_offset + (end_tod < start_tod ? 1 : 0);
-                    const std::time_t t =
-                        local_minutes_to_time_t(end_tod, local, finish_day);
+                    const TimePoint t =
+                        local_minutes_to_time_point(end_tod, local, finish_day);
                     if (t > now)
                     {
                         result.push_back({t, p.id});
                     }
                 }
 
-                // ----- WARNING (second-precision, absolute) -------------------
+                // Warning
                 if (has_warning)
                 {
                     // Always compute from the start of this day_offset instance
-                    const std::time_t start_t =
-                        local_minutes_to_time_t(start_tod, local, day_offset);
+                    const TimePoint start_t =
+                        local_minutes_to_time_point(start_tod, local, day_offset);
 
                     // May cross midnight; that is intentional and correct
-                    const std::time_t warn_t =
-                        start_t - static_cast<std::time_t>(lead_sec.count());
+                    const TimePoint warn_t = start_t - lead_sec;
 
                     if (warn_t > now)
                     {
@@ -961,8 +930,7 @@ namespace scheduler
         }
 
         // Discard anything beyond the configured horizon
-        const std::time_t horizon =
-            now + std::chrono::duration_cast<std::chrono::seconds>(cfg_.planning_horizon).count();
+        const TimePoint horizon = now + cfg_.planning_horizon;
 
         std::erase_if(result,
                     [horizon](const PlannedEvent& e) { return e.when > horizon; });
@@ -970,8 +938,8 @@ namespace scheduler
         return result;
     }
 
-    std::time_t BellScheduler::local_minutes_to_time_t(
-        std::chrono::minutes tod,
+    BellScheduler::TimePoint
+    BellScheduler::local_minutes_to_time_point(std::chrono::minutes tod,
         const std::tm& base_local,
         int day_offset) noexcept
     {
@@ -981,11 +949,12 @@ namespace scheduler
         tm.tm_mday += day_offset;
 
         tm.tm_hour = static_cast<int>(tod.count() / 60);
-        tm.tm_min  = static_cast<int>(tod.count() % 60);
-        tm.tm_sec  = 0;
+        tm.tm_min = static_cast<int>(tod.count() % 60);
+        tm.tm_sec = 0;
         tm.tm_isdst = -1;
 
-        return std::mktime(&tm);
+        const std::time_t t = std::mktime(&tm);
+        return Clock::from_time_t(t);
     }
 
     std::chrono::minutes BellScheduler::clamp_tod(std::chrono::minutes m) noexcept
@@ -999,16 +968,9 @@ namespace scheduler
         return m;
     }
 
-    // ---------------------------------------------------------------------------
-    // Dispatch – the only place that talks to the Event API
-    // ---------------------------------------------------------------------------
     void BellScheduler::dispatch(const PlannedEvent& ev) noexcept
     {
-        const timeval tv = [] {
-            timeval result{};
-            gettimeofday(&result, nullptr);
-            return result;
-        }();
+        const TimePoint actual = Clock::now();
 
         const event::BellDue data{
             .duration_ms =
@@ -1017,14 +979,8 @@ namespace scheduler
 
         const bool ok = dispatcher_.publish(event::Source::Scheduler, data);
 
-        const std::int64_t actual_us =
-            static_cast<std::int64_t>(tv.tv_sec) * 1'000'000LL +
-            tv.tv_usec;
-
-        const std::int64_t scheduled_us =
-            static_cast<std::int64_t>(ev.when) * 1'000'000LL;
-
-        const std::int64_t lateness_us = actual_us - scheduled_us;
+        const auto lateness =
+            std::chrono::duration_cast<std::chrono::microseconds>(actual - ev.when);
 
         if (!ok)
         {
@@ -1036,9 +992,9 @@ namespace scheduler
             ESP_LOGI(k_tag,
                 "BellDue period=%u scheduled=%lld actual=%lld lateness=%lld us",
                 ev.period_id,
-                static_cast<long long>(ev.when),
-                static_cast<long long>(tv.tv_sec),
-                static_cast<long long>(lateness_us));
+                static_cast<long long>(Clock::to_time_t(ev.when)),
+                static_cast<long long>(Clock::to_time_t(actual)),
+                static_cast<long long>(lateness.count()));
         }
     }
 } // namespace scheduler

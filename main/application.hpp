@@ -8,9 +8,6 @@
 #include "configuration.hpp"
 #include "peripherals.hpp"
 
-#include "esp_wifi.h"
-#include "nvs_flash.h"
-
 class Application
 {
 public:
@@ -21,9 +18,9 @@ public:
 	Application(const Application&&) = delete;
 	Application& operator=(const Application&&) = delete;
 
-	void start();
-	void stop();
+	~Application() = default; // Application is static
 
+	void start();
 private:
 	
 	// Event System
@@ -42,8 +39,6 @@ private:
 	HardwareController hardware_controller_;
 
 	void initialize_global();
-
-	void shutdown();
 
 	void publish_application_state_changed(event::ApplicationState state);
 };

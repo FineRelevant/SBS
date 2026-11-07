@@ -22,6 +22,34 @@ public:
     esp_err_t start();
 
 private:
+    struct Rgb
+    {
+        uint8_t r, g, b;
+    };
+    static constexpr gpio_num_t k_gpio_button_ = GPIO_NUM_15;
+    static constexpr gpio_num_t k_gpio_bell_ = GPIO_NUM_20;
+    static constexpr gpio_num_t k_gpio_led_onboard_ = GPIO_NUM_8;
+    // Different led strip colors according to the application mode.
+    static constexpr Rgb k_led_onboard_rgb_conf_ = {0, 5, 0};
+    static constexpr Rgb k_led_onboard_rgb_run_ = {0, 0, 0};
+    static constexpr Rgb k_led_onboard_rgb_sync_ = {2, 0, 3};
+
+    static constexpr uint32_t k_button_poll_interval_ms_ = 10;
+    static constexpr uint32_t k_button_debounce_ms_ = 30;
+
+    event::EventDispatcher& event_dispatcher_;
+
+    TimerHandle_t bell_timer_{nullptr};
+    led_strip_handle_t rgb_led_{nullptr};
+
+    std::atomic<event::ApplicationState> application_state_{
+        event::ApplicationState::Running
+    };
+
+    bool started_{false};
+
+
+    
     static void on_bell_due(
         const event::Event&,
         const event::BellDue&,
@@ -41,25 +69,6 @@ private:
     void handle_application_state_changed(
         const event::ApplicationStateChanged& event);
 
-    void set_external_led(bool enabled);
-    void set_onboard_rgb(uint8_t r, uint8_t g, uint8_t b);
-
-private:
-    static constexpr gpio_num_t k_gpio_button_ = GPIO_NUM_15;
-    static constexpr gpio_num_t k_gpio_bell_ = GPIO_NUM_20;
-    static constexpr gpio_num_t k_gpio_led_onboard_ = GPIO_NUM_8;
-
-    static constexpr uint32_t k_button_poll_interval_ms_ = 10;
-    static constexpr uint32_t k_button_debounce_ms_ = 30;
-
-    event::EventDispatcher& event_dispatcher_;
-
-    TimerHandle_t bell_timer_{nullptr};
-    led_strip_handle_t rgb_led_{nullptr};
-
-    std::atomic<event::ApplicationState> application_state_{
-        event::ApplicationState::Running
-    };
-
-    bool started_{false};
+    void set_control_signal(bool enabled);
+    void set_onboard_rgb(Rgb rgb);
 };

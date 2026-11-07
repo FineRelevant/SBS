@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 #include <expected>
-#include <span>
 #include <string_view>
 
 #include "esp_err.h"

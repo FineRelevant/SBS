@@ -35,7 +35,7 @@ For day-to-day operation, configuration via the web UI, and hardware details, se
 | Bell output        | 20   | Driven high for `bell_duration_ms`      |
 | Onboard RGB LED    | 8    | WS2812 via RMT (status indication)      |
 
-Default soft-AP address for the configuration website running on AP: **192.168.0.176**
+Default soft-AP address for the configuration website running: **192.168.0.176**
 
 ---
 

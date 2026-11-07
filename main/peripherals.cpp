@@ -10,7 +10,7 @@
 
 namespace
 {
-    constexpr char k_tag[] = "hardware";
+    constexpr char k_tag[] = "HardwareController";
 
     TickType_t milliseconds_to_ticks(uint32_t milliseconds)
     {
@@ -41,10 +41,6 @@ esp_err_t HardwareController::start()
         return ESP_ERR_INVALID_STATE;
     }
 
-    // ---------------------------------------------------------------------
-    // External LED
-    // ---------------------------------------------------------------------
-
     gpio_config_t bell_config{};
 
     bell_config.pin_bit_mask = 1ULL << k_gpio_bell_;
@@ -58,11 +54,7 @@ esp_err_t HardwareController::start()
         k_tag,
         "Bell GPIO configuration failed");
 
-    set_external_led(false);
-
-    // ---------------------------------------------------------------------
-    // Button
-    // ---------------------------------------------------------------------
+    set_control_signal(false);
 
     gpio_config_t button_config{};
 
@@ -77,9 +69,7 @@ esp_err_t HardwareController::start()
         k_tag,
         "Button GPIO configuration failed");
 
-    // ---------------------------------------------------------------------
-    // Onboard RGB LED (WS2812)
-    // ---------------------------------------------------------------------
+    // Onboard RGB LED is WS2812 on the target
 
     led_strip_config_t strip_config{};
 
@@ -110,10 +100,6 @@ esp_err_t HardwareController::start()
         k_tag,
         "RGB LED initialization failed");
 
-    // ---------------------------------------------------------------------
-    // Bell software timer
-    // ---------------------------------------------------------------------
-
     bell_timer_ = xTimerCreate(
         "bell_led",
         1,
@@ -126,10 +112,6 @@ esp_err_t HardwareController::start()
         return ESP_ERR_NO_MEM;
     }
 
-    // ---------------------------------------------------------------------
-    // Event subscriptions
-    // ---------------------------------------------------------------------
-
     if (!event_dispatcher_.subscribe<event::BellDue>(
             &HardwareController::on_bell_due, this))
     {
@@ -141,10 +123,6 @@ esp_err_t HardwareController::start()
     {
         return ESP_ERR_NO_MEM;
     }
-
-    // ---------------------------------------------------------------------
-    // Button task
-    // ---------------------------------------------------------------------
 
     if (xTaskCreate(
             &HardwareController::button_task,
@@ -160,16 +138,12 @@ esp_err_t HardwareController::start()
     started_ = true;
 
     // Initial application state.
-    set_onboard_rgb(0, 0, 0);
+    set_onboard_rgb({0, 0, 0});
 
     ESP_LOGI(k_tag, "Hardware controller started");
 
     return ESP_OK;
 }
-
-// ==========================================================================
-// Event callbacks
-// ==========================================================================
 
 void HardwareController::on_bell_due(
     const event::Event&,
@@ -189,12 +163,7 @@ void HardwareController::on_application_state_changed(
     self->handle_application_state_changed(event);
 }
 
-// ==========================================================================
-// Bell
-// ==========================================================================
-
-void HardwareController::handle_bell_due(
-    const event::BellDue& event)
+void HardwareController::handle_bell_due(const event::BellDue& event)
 {
     if (event.duration_ms == 0)
     {
@@ -214,7 +183,7 @@ void HardwareController::handle_bell_due(
         return;
     }
 
-    set_external_led(true);
+    set_control_signal(true);
 }
 
 void HardwareController::external_led_timeout(
@@ -223,17 +192,13 @@ void HardwareController::external_led_timeout(
     auto* self = static_cast<HardwareController*>(
         pvTimerGetTimerID(timer));
 
-    self->set_external_led(false);
+    self->set_control_signal(false);
 }
 
-void HardwareController::set_external_led(bool enabled)
+void HardwareController::set_control_signal(bool enabled)
 {
     gpio_set_level(k_gpio_bell_, enabled ? 1 : 0);
 }
-
-// ==========================================================================
-// Application state
-// ==========================================================================
 
 void HardwareController::handle_application_state_changed(
     const event::ApplicationStateChanged& event)
@@ -245,61 +210,61 @@ void HardwareController::handle_application_state_changed(
     switch (event.state)
     {
         case event::ApplicationState::Configuration:
-            set_onboard_rgb(0, 5, 0);
+            set_onboard_rgb(k_led_onboard_rgb_conf_);
             break;
 
         case event::ApplicationState::Running:
+            set_onboard_rgb(k_led_onboard_rgb_run_);
+            break;
+            
         case event::ApplicationState::Synchronization:
-            set_onboard_rgb(0, 0, 0);
+            set_onboard_rgb(k_led_onboard_rgb_sync_);
             break;
     }
 }
-
-// ==========================================================================
-// Button
-// ==========================================================================
 
 void HardwareController::button_task(void* context)
 {
     auto* self = static_cast<HardwareController*>(context);
 
-    constexpr TickType_t poll_interval =
+    constexpr auto poll_interval =
         pdMS_TO_TICKS(k_button_poll_interval_ms_);
 
-    constexpr TickType_t debounce_interval =
+    constexpr auto debounce_interval =
         pdMS_TO_TICKS(k_button_debounce_ms_);
 
-    // Button uses internal pull-up:
-    // HIGH = released (UP)
-    // LOW  = pressed  (DOWN)
+    // Active-low button with internal pull-up.
+    // true = released, false = pressed.
 
-    int stable_state = 1;
-    int candidate_state = 1;
+    bool stable_state = true;
+    bool candidate_state = stable_state;
 
-    TickType_t candidate_since = xTaskGetTickCount();
+    auto candidate_since = xTaskGetTickCount();
+    auto last_wake = candidate_since;
 
     while (true)
     {
-        const int current_state =
-            gpio_get_level(k_gpio_button_);
+        const auto now = xTaskGetTickCount();
+        const bool current_state =
+            (bool)gpio_get_level(k_gpio_button_);
 
+        // Track a potential state transition.
         if (current_state != candidate_state)
         {
             candidate_state = current_state;
-            candidate_since = xTaskGetTickCount();
+            candidate_since = now;
         }
 
-        const TickType_t now = xTaskGetTickCount();
-
+        // Accept the transition after the debounce interval.
         if (candidate_state != stable_state &&
             (now - candidate_since) >= debounce_interval)
         {
             stable_state = candidate_state;
 
             const auto next_state =
-                stable_state == 0
-                    ? event::ApplicationState::Configuration
-                    : event::ApplicationState::Running;
+                stable_state
+                    ? event::ApplicationState::Running
+                    : event::ApplicationState::Configuration;
 
             if (!self->event_dispatcher_.publish(
                     event::Source::Application,
@@ -311,18 +276,12 @@ void HardwareController::button_task(void* context)
             }
         }
 
-        vTaskDelay(poll_interval);
+        vTaskDelayUntil(&last_wake, poll_interval);
     }
 }
 
-// ==========================================================================
-// Onboard RGB LED
-// ==========================================================================
-
 void HardwareController::set_onboard_rgb(
-    uint8_t r,
-    uint8_t g,
-    uint8_t b)
+    Rgb rgb)
 {
     if (rgb_led_ == nullptr)
     {
@@ -330,7 +289,7 @@ void HardwareController::set_onboard_rgb(
     }
 
     const esp_err_t err =
-        led_strip_set_pixel(rgb_led_, 0, r, g, b);
+        led_strip_set_pixel(rgb_led_, 0, rgb.r, rgb.g, rgb.b);
 
     if (err != ESP_OK)
     {

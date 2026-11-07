@@ -10,15 +10,16 @@
 
 #include "esp_err.h"
 #include "nvs.h"
+
 namespace storage
 {
 	class NvsService final
 	{
 	public:
-		enum class Access
+		enum class Access : uint8_t
 		{
 			ReadOnly = 0,
-			ReadWrite
+			ReadWrite,
 		};
 
 		NvsService() noexcept = default;

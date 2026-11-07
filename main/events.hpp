@@ -35,18 +35,10 @@ namespace event
 	using IPv4Address = std::uint32_t;
 	using MacAddress = std::array<std::uint8_t, 6>;
 
-	// -------------------------------------------------------------------------
-	// Application
-	// -------------------------------------------------------------------------
-
 	struct ApplicationStateChanged
 	{
 		ApplicationState state;
 	};
-
-	// -------------------------------------------------------------------------
-	// Event data
-	// -------------------------------------------------------------------------
 
 	struct BellDue
 	{
@@ -140,9 +132,10 @@ namespace event
 		std::int32_t error;
 	};
 
+	// SNTP
+
 	struct SntpTimeSynced
 	{
-		// timeval fields – keep them plain so the variant stays trivial / POD-friendly
 		std::int64_t tv_sec{};
 		std::int32_t tv_usec{};
 	};
@@ -269,6 +262,8 @@ namespace event
 
 				return true;
 			}
+
+			bool remove_handler(void *context);
 
 			void invoke(
 				const Event &event,

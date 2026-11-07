@@ -20,7 +20,7 @@
 
 namespace storage
 {
-class FilesystemService;
+    class FilesystemService;
 } // namespace storage
 
 namespace scheduler
@@ -66,9 +66,6 @@ namespace scheduler
         parse_schedule(std::string_view json, std::string_view schedule) noexcept;
     };
 
-// ---------------------------------------------------------------------------
-// SntpClient
-// ---------------------------------------------------------------------------
     class SntpClient
     {
     public:
@@ -76,7 +73,7 @@ namespace scheduler
         {
             bool smooth_sync = true;
             bool server_from_dhcp = true;
-            bool wait_for_sync = true;
+            bool wait_for_sync = false;
             bool start = false;
             bool renew_servers_after_new_ip = false;
             ip_event_t  ip_event_to_renew = IP_EVENT_STA_GOT_IP;
@@ -151,25 +148,25 @@ namespace scheduler
         bool started_{false};
     };
 
-    // ---------------------------------------------------------------------------
-    // BellScheduler
-    // ---------------------------------------------------------------------------
     class BellScheduler final
     {
     public:
         static constexpr std::size_t max_events = 128;
         static constexpr std::string_view schedules_path = "schedules.json";
 
+        using Clock = std::chrono::system_clock;
+        using TimePoint = Clock::time_point;
+
         struct Config
         {
-            std::chrono::hours planning_horizon = std::chrono::hours(36);
+            std::chrono::hours planning_horizon = std::chrono::hours{36};
             std::uint32_t task_stack_size{4096};
             UBaseType_t task_priority{5};
         };
 
         explicit BellScheduler(storage::FilesystemService& fs,
-                            event::EventDispatcher& dispatcher,
-                            Config cfg) noexcept;
+            event::EventDispatcher& dispatcher,
+            Config cfg) noexcept;
 
         BellScheduler(const BellScheduler&) = delete;
         BellScheduler& operator=(const BellScheduler&) = delete;
@@ -193,33 +190,30 @@ namespace scheduler
         // Internal representation of a future ringing instant
         struct PlannedEvent
         {
-            std::time_t when{};       // absolute UTC seconds
-            std::uint32_t period_id{};  // for logging / diagnostics only
+            TimePoint when{};
+            std::uint32_t period_id{};
         };
 
-        // FreeRTOS worker
         static void worker_entry(void* arg);
         void worker_loop();
 
-        // Core algorithm
         [[nodiscard]] esp_err_t load_and_parse() noexcept;
         void apply_timezone(std::string_view tz) noexcept;
 
         [[nodiscard]] std::vector<PlannedEvent>
         build_events(const BellSchedule& schedule,
             const BellRuntimeSettings& settings,
-            std::time_t now) const noexcept;
+            TimePoint now) const noexcept;
 
         void dispatch(const PlannedEvent& ev) noexcept;
 
         // Helpers
-        static std::time_t local_minutes_to_time_t(std::chrono::minutes tod,
+        static TimePoint local_minutes_to_time_point(std::chrono::minutes tod,
             const std::tm& base_local,
             int day_offset) noexcept;
 
         static std::chrono::minutes clamp_tod(std::chrono::minutes m) noexcept;
 
-        // Members
         storage::FilesystemService& fs_;
         event::EventDispatcher& dispatcher_;
         Config cfg_;
@@ -236,5 +230,5 @@ namespace scheduler
 
         BellRuntimeSettings settings_{};
         BellSchedule schedule_{};
-    };
+};
 } // namespace scheduler

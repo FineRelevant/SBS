@@ -2,8 +2,6 @@
 
 #include <utility>
 
-#include "nvs_flash.h"
-
 namespace storage
 {
 

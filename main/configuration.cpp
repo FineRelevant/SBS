@@ -1538,7 +1538,7 @@ namespace internet
             ESP_LOGE("APP", "mDNS service registration failed");
             return result.error();
         }
-        ESP_LOGI(k_tag, "Successfully start mDNS");
+        ESP_LOGI(k_tag, "Successfully started mDNS");
         return ESP_OK;
     }
     
