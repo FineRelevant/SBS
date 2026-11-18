@@ -142,7 +142,7 @@ A compile-time type-safe publish/subscribe layer sits on a FreeRTOS queue. Event
 | `ApplicationStateChanged` | HardwareController (btn)  | ConfigurationService, HardwareController |
 | `WifiStationGotIp`        | WifiService               | ConfigurationService                 |
 | `WifiApStarted`           | WifiService               | ConfigurationService                 |
-| `SntpTimeSynced`          | SntpClient                | (reserved / future use)              |
+| `SntpTimeSynced`          | SntpClient                | ConfigurationService                 |
 
 ### Bell Scheduling Pipeline
 
