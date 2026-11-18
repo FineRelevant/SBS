@@ -72,7 +72,6 @@ flowchart TB
         HW[HardwareController]
     end
 
-    App --> EQ
     App --> ED
     App --> EDTask
     App --> FS
@@ -89,6 +88,7 @@ flowchart TB
     Conf --> HttpS
     Conf --> Mdns
     Conf --> HttpC
+    Conf --> NVS
 
     Sched --> FS
     Sched --> ED
