@@ -71,16 +71,16 @@ namespace scheduler
     public:
         struct Config
         {
-            bool smooth_sync = true;
-            bool server_from_dhcp = true;
-            bool wait_for_sync = false;
-            bool start = false;
-            bool renew_servers_after_new_ip = false;
-            ip_event_t  ip_event_to_renew = IP_EVENT_STA_GOT_IP;
-            std::size_t index_of_first_server = 0;
+            bool smooth_sync{true};
+            bool server_from_dhcp{true};
+            bool wait_for_sync{false};
+            bool start{false};
+            bool renew_servers_after_new_ip{false};
+            ip_event_t  ip_event_to_renew{IP_EVENT_STA_GOT_IP};
+            std::size_t index_of_first_server{0};
 
             std::array<const char*, CONFIG_LWIP_SNTP_MAX_SERVERS> servers{"pool.ntp.org"};
-            std::size_t num_servers = 1;
+            std::size_t num_servers{1};
 
             // Factories
             [[nodiscard]] static Config single(std::string_view server,
@@ -151,8 +151,8 @@ namespace scheduler
     class BellScheduler final
     {
     public:
-        static constexpr std::size_t max_events = 128;
-        static constexpr std::string_view schedules_path = "schedules.json";
+        static constexpr std::size_t max_events{128};
+        static constexpr std::string_view schedules_path{"schedules.json"};
 
         using Clock = std::chrono::system_clock;
         using TimePoint = Clock::time_point;

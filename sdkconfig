@@ -1321,6 +1321,15 @@ CONFIG_HTTPD_SERVER_EVENT_POST_TIMEOUT=2000
 # end of HTTP Server
 
 #
+# ESP HTTPS server
+#
+# default:
+# CONFIG_ESP_HTTPS_SERVER_ENABLE is not set
+# default:
+# CONFIG_ESP_HTTPS_SERVER_CERT_SELECT_HOOK is not set
+# end of ESP HTTPS server
+
+#
 # Hardware Settings
 #
 # default:
@@ -3071,8 +3080,7 @@ CONFIG_MBEDTLS_PKCS1_V21=y
 #
 # NVS
 #
-# default:
-# CONFIG_NVS_ENCRYPTION is not set
+CONFIG_NVS_ENCRYPTION=y
 # default:
 # CONFIG_NVS_ASSERT_ERROR_CHECK is not set
 # default:
@@ -3082,6 +3090,17 @@ CONFIG_MBEDTLS_PKCS1_V21=y
 # default:
 # CONFIG_NVS_FLASH_VERIFY_ERASE is not set
 # end of NVS
+
+#
+# NVS Security Provider
+#
+# default:
+CONFIG_NVS_SEC_KEY_PROTECT_USING_HMAC=y
+# default:
+# CONFIG_NVS_SEC_KEY_PROTECT_NONE is not set
+# default:
+CONFIG_NVS_SEC_HMAC_EFUSE_KEY_ID=-1
+# end of NVS Security Provider
 
 #
 # PThreads

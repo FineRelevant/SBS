@@ -15,4 +15,4 @@ idf_component_register(
 		"mdns.cpp"
 		"peripherals.cpp"
     INCLUDE_DIRS "."
-    REQUIRES esp_wifi nvs_flash esp_http_server esp_http_client esp_netif esp_driver_gpio)
+    REQUIRES esp_wifi nvs_flash esp_http_server esp_http_client esp_https_server esp_netif esp_driver_gpio)
