@@ -72,6 +72,7 @@ flowchart TB
         HW[HardwareController]
     end
 
+    App --> EQ
     App --> ED
     App --> EDTask
     App --> FS
