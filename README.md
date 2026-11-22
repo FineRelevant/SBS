@@ -232,12 +232,12 @@ ESP-IDF version: 6.1.0 (target `esp32c6`).
 
 ## Build and Development
 
-# Select target
+### Select target
 ```bash
 idf.py set-target esp32c6
 ```
 
-# Debug build and configuration
+### Debug build and configuration
 ```bash
 # Configure
 idf.py -D SDKCONFIG=sdkconfig.debug menuconfig
@@ -248,8 +248,9 @@ idf.py -B build-debug -D SDKCONFIG=sdkconfig.debug build
 # Flash and monitor
 idf.py -B build-debug -p /dev/ttyUSB0 flash monitor
 ```
+**Note:** debug builds do not enable Flash Encryption or Secure Boot. Debugging interfaces remain available.
 
-# Release build and configuration
+### Release build and configuration
 ```bash
 # Configure
 idf.py -D SDKCONFIG=sdkconfig.release menuconfig
@@ -261,6 +262,8 @@ idf.py -B build-release -D SDKCONFIG=sdkconfig.release build
 idf.py -B build-release -p /dev/ttyUSB0 flash monitor
 ```
 
+**Note:** release builds enable Flash Encryption and Secure Boot. Application partitions are encrypted automatically, while data partitions marked with the encrypted flag are encrypted by Flash Encryption. NVS uses NVS Encryption separately.
+
 ---
 
 ## Known Limitations / Notes
@@ -269,6 +272,7 @@ idf.py -B build-release -p /dev/ttyUSB0 flash monitor
 - `Application::stop()` is currently a stub.
 - Day-of-week selection is not implemented; the active schedule is chosen manually by identifier.
 - Connectivity probing uses several well-known captive-portal endpoints after an IP address is obtained.
+- Before deploying a Release build with Flash Encryption and NVS Encryption enabled, erase existing NVS and LittleFS data created by previous unencrypted builds. Existing plaintext data is not automatically encrypted in place.
 
 ---
 
