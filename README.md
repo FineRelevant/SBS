@@ -89,6 +89,7 @@ flowchart TB
     Conf --> HttpS
     Conf --> Mdns
     Conf --> HttpC
+    Conf --> NVS
 
     Sched --> FS
     Sched --> ED
