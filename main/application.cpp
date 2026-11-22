@@ -1,5 +1,7 @@
 #include "application.hpp"
 
+#include "filesystem.hpp"
+#include "nvs.hpp"
 #include "nvs_flash.h"
 
 Application::Application()
@@ -18,7 +20,19 @@ Application::Application()
 void Application::start()
 {
 	initialize_global();
+
 	ESP_ERROR_CHECK(filesystem_service_.mount());
+
+	// Format everything
+	/*auto nvs = storage::NvsService::open("config");
+	if (!nvs)
+	{
+		ESP_ERROR_CHECK(nvs.error());
+	}
+	ESP_ERROR_CHECK(nvs->erase_all());
+	ESP_ERROR_CHECK(filesystem_service_.format());
+	*/
+
 	ESP_ERROR_CHECK(hardware_controller_.start());
 
 	ESP_ERROR_CHECK(configuration_service_.start());

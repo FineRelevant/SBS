@@ -231,16 +231,33 @@ ESP-IDF version: 6.1.0 (target `esp32c6`).
 
 ## Build and Development
 
-```bash
 # Select target
+```bash
 idf.py set-target esp32c6
+```
 
-# Optional configuration
-idf.py menuconfig
+# Debug build and configuration
+```bash
+# Configure
+idf.py -D SDKCONFIG=sdkconfig.debug menuconfig
 
-# Build, flash, monitor
-idf.py build
-idf.py -p /dev/ttyUSB0 flash monitor
+# Build
+idf.py -B build-debug -D SDKCONFIG=sdkconfig.debug build
+
+# Flash and monitor
+idf.py -B build-debug -p /dev/ttyUSB0 flash monitor
+```
+
+# Release build and configuration
+```bash
+# Configure
+idf.py -D SDKCONFIG=sdkconfig.release menuconfig
+
+# Build
+idf.py -B build-release -D SDKCONFIG=sdkconfig.release build
+
+# Flash and monitor
+idf.py -B build-release -p /dev/ttyUSB0 flash monitor
 ```
 
 ---
